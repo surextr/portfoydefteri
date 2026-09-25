@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#2B5618">
+<title>İlan</title>
+<meta property="og:title" content="İlan detayı">
+<meta property="og:description" content="Fotoğraflar, özellikler ve iletişim bilgileri">
+<style>
+:root{--brand:#3C7922;--deep:#2B5618;--ink:#18211B;--muted:#5E6B61;--line:#DCE3DA;--bg:#F4F6F2;--soft:#EAF1E6;box-sizing:border-box}
+*,*::before,*::after{box-sizing:inherit}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
+a{color:var(--brand)}
+.wrap{max-width:860px;margin:0 auto}
+header{display:flex;align-items:center;gap:12px;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top,0px));background:#fff;border-bottom:1px solid var(--line)}
+header img{height:44px;width:auto}
+header b{font-size:18px}
+.gal{position:relative;background:#111;aspect-ratio:4/3;max-height:70vh;width:100%;overflow:hidden}
+.gal img{width:100%;height:100%;object-fit:contain;display:block}
+.gal button{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;border:0;background:rgba(255,255,255,.88);font-size:20px;cursor:pointer}
+.gal .l{left:10px}.gal .r{right:10px}
+.gal .cnt{position:absolute;right:10px;bottom:10px;background:rgba(0,0,0,.6);color:#fff;font-size:13px;padding:3px 10px;border-radius:999px}
+.thumbs{display:flex;gap:6px;overflow-x:auto;padding:8px 16px;background:#fff}
+.thumbs img{width:76px;height:57px;object-fit:cover;border-radius:6px;opacity:.55;cursor:pointer;flex:0 0 auto}
+.thumbs img.on{opacity:1;outline:2px solid var(--brand)}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 12px 0}
+.badge{display:inline-block;background:#2A332D;color:#fff;font-size:13px;font-weight:700;padding:3px 10px;border-radius:999px}
+.price{font-size:30px;font-weight:800;color:var(--deep);letter-spacing:-.02em;margin:8px 0 2px;font-variant-numeric:tabular-nums}
+h1{font-size:21px;line-height:1.25;margin:4px 0 6px}
+.loc{color:var(--muted)}
+h2{font-size:17px;margin:0 0 10px}
+table{width:100%;border-collapse:collapse}
+td{padding:9px 0;border-bottom:1px solid var(--line);vertical-align:top}
+td:first-child{color:var(--muted);width:48%;padding-right:10px}
+td:last-child{font-weight:600}
+.desc{white-space:pre-wrap}
+.map{width:100%;height:260px;border:0;border-radius:10px;display:block}
+.bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;z-index:10}
+.bar a{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;border-radius:12px;font-weight:700;text-decoration:none;font-size:16px}
+.bar .tel{background:var(--brand);color:#fff}
+.bar .wa{background:#1FA855;color:#fff}
+.bar svg{width:22px;height:22px}
+.agent{display:flex;gap:12px;align-items:center}
+.agent .av{width:48px;height:48px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-weight:800;color:var(--deep);flex:0 0 auto}
+.muted{color:var(--muted)}.small{font-size:13px}
+.state{text-align:center;padding:60px 20px}
+.state b{display:block;font-size:20px;margin-bottom:6px}
+.sold{background:#FBF1E6;border:1px solid #EBCFAE;color:#6B4F3A;border-radius:12px;padding:14px;font-weight:700;text-align:center;font-size:18px}
+.foot{text-align:center;font-size:12px;color:var(--muted);padding:18px 16px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="state"><b>İlan yükleniyor…</b></div></div>
+<script>
+"use strict";
+const SB_URL='https://wsbcodlvxiuiscjerziq.supabase.co',SB_KEY='sb_publishable_doEtNh3jp0LhJIYROp7XRw_CjXu7WSI';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const IC={tel:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>',
+  wa:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.4-.3z"/></svg>'};
+function waNo(t){let d=String(t||'').replace(/\D/g,'');if(d.startsWith('00'))d=d.slice(2);if(d.startsWith('0'))d='90'+d.slice(1);else if(d.length===10)d='90'+d;return d}
+function koyu(hex){const n=parseInt((hex||'#3C7922').slice(1),16);return '#'+[n>>16&255,n>>8&255,n&255].map(x=>Math.round(x*.72).toString(16).padStart(2,'0')).join('')}
+function ust(f){return `<header>${f&&f.logo?`<img src="${esc(f.logo)}" alt="">`:''}<b>${esc(f&&f.ad||'')}</b></header>`}
+function durumSayfasi(v,baslik,metin){document.getElementById('app').innerHTML=ust(v&&v.firma)+`<div class="state"><b>${esc(baslik)}</b><p class="muted">${esc(metin)}</p></div>`}
+function iletisimBar(v){const c=v.iletisim||{};const bar=document.createElement('div');bar.className='bar';
+  const msg=`Merhaba, ${v.no?v.no+' numaralı ':''}"${v.baslik||'ilan'}" hakkında bilgi almak istiyorum. ${location.href}`;
+  bar.innerHTML=`${c.tel?`<a class="tel" href="tel:${esc(String(c.tel).replace(/\s/g,''))}">${IC.tel} Ara</a>`:''}${c.wa?`<a class="wa" href="https://wa.me/${waNo(c.wa)}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">${IC.wa} WhatsApp</a>`:''}`;
+  if(bar.children.length)document.body.appendChild(bar)}
+function ajanKart(v){const c=v.iletisim||{};const bas=(c.ad||v.firma.ad||'?').trim().split(/\s+/).map(x=>x[0]).slice(0,2).join('').toLocaleUpperCase('tr');
+  return `<div class="card"><h2>İletişim</h2><div class="agent"><div class="av">${esc(bas)}</div><div><b>${esc(c.ad||'')}</b><div class="muted">${esc(v.firma.ad||'')}</div>${c.tel?`<div><a href="tel:${esc(String(c.tel).replace(/\s/g,''))}">${esc(c.tel)}</a></div>`:''}</div></div>
+    ${c.eposta?`<p class="small" style="margin:10px 0 0">${esc(c.eposta)}</p>`:''}${c.adres?`<p class="small muted" style="margin:4px 0 0">${esc(c.adres)}</p>`:''}${c.yetkiNo?`<p class="small muted" style="margin:4px 0 0">Taşınmaz Ticareti Yetki Belge No: ${esc(c.yetkiNo)}</p>`:''}</div>`}
+async function yukle(){
+  const k=new URLSearchParams(location.search).get('k');if(!k){durumSayfasi(null,'İlan bulunamadı','Bağlantı eksik görünüyor.');return}
+  let v=null;
+  try{const r=await fetch(SB_URL+'/rest/v1/rpc/ilan_getir',{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({t:k})});
+    if(!r.ok)throw new Error(r.status);v=await r.json()}
+  catch(e){durumSayfasi(null,'İlan yüklenemedi','İnternet bağlantınızı kontrol edip sayfayı yenileyin.');return}
+  if(!v){durumSayfasi(null,'İlan bulunamadı','Bu ilan kaldırılmış olabilir.');return}
+  if(v.firma&&v.firma.renk){document.documentElement.style.setProperty('--brand',v.firma.renk);document.documentElement.style.setProperty('--deep',koyu(v.firma.renk));document.querySelector('meta[name=theme-color]').content=koyu(v.firma.renk)}
+  if(v.durum==='pasif'){durumSayfasi(v,'İlan şu an yayında değil','Bu ilan geçici olarak yayından kaldırılmış.');return}
+  if(v.durum==='kapali'){durumSayfasi(v,'İlan yayında değil','Bu ilan artık yayında değil.');return}
+  document.title=(v.baslik||'İlan')+(v.firma&&v.firma.ad?' | '+v.firma.ad:'');
+  if(v.durum==='Satıldı'||v.durum==='Kiralandı'){
+    document.getElementById('app').innerHTML=ust(v.firma)+(v.kapak?`<div class="gal"><img src="${esc(v.kapak)}" alt=""></div>`:'')+
+      `<div class="card"><div class="sold">Bu ilan ${v.durum==='Satıldı'?'satıldı':'kiralandı'}</div><h1 style="margin-top:12px">${esc(v.baslik)}</h1><div class="loc">${esc(v.konumYazi)}</div>
+       <p class="muted small">Benzer ilanlar için bizimle iletişime geçebilirsiniz.</p></div>`+ajanKart(v)+`<div class="foot">${esc(v.firma.ad||'')}</div>`;
+    iletisimBar(v);return}
+  const F=v.fotolar||[];
+  document.getElementById('app').innerHTML=ust(v.firma)+
+    (F.length?`<div class="gal" id="gal"><img id="gi" src="${esc(F[0])}" alt="">${F.length>1?'<button class="l" id="gl" aria-label="Önceki">‹</button><button class="r" id="gr" aria-label="Sonraki">›</button>':''}<span class="cnt" id="gc">1 / ${F.length}</span></div>
+      ${F.length>1?`<div class="thumbs">${F.map((u,k)=>`<img src="${esc(u)}" data-k="${k}" class="${k?'':'on'}" loading="lazy" alt="">`).join('')}</div>`:''}`:'')+
+    `<div class="card"><span class="badge">${esc(v.islem)} ${esc(v.tur)}</span><div class="price">${esc(v.fiyat)}</div><h1>${esc(v.baslik)}</h1><div class="loc">📍 ${esc(v.konumYazi)}</div>
+      ${v.no?`<div class="small muted" style="margin-top:6px">İlan No: ${esc(v.no)}</div>`:''}</div>`+
+    (v.ozellikler&&v.ozellikler.length?`<div class="card"><h2>Özellikler</h2><table>${v.ozellikler.map(([a,b])=>`<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join('')}</table></div>`:'')+
+    (v.aciklama?`<div class="card"><h2>Açıklama</h2><div class="desc">${esc(v.aciklama)}</div></div>`:'')+
+    (v.video?`<div class="card"><h2>Video</h2><a href="${esc(v.video)}" target="_blank" rel="noopener">Videoyu izle</a></div>`:'')+
+    (v.konum?(()=>{const d=v.konum.tam?0.004:0.018,la=v.konum.lat,ln=v.konum.lng;
+      const src=`https://www.openstreetmap.org/export/embed.html?bbox=${ln-d},${la-d*.75},${ln+d},${la+d*.75}&layer=mapnik${v.konum.tam?`&marker=${la},${ln}`:''}`;
+      return `<div class="card"><h2>Konum</h2><iframe class="map" src="${src}" loading="lazy" title="Harita"></iframe><p class="small muted" style="margin:8px 0 0">${v.konum.tam?'':'Harita yaklaşık bölgeyi gösterir. '}<a href="https://maps.google.com/?q=${la},${ln}" target="_blank" rel="noopener">Google Haritalar'da aç</a></p></div>`})():'')+
+    ajanKart(v)+`<div class="foot">${esc(v.firma.ad||'')}${v.guncel?' · Son güncelleme '+new Date(v.guncel).toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'}):''}</div>`;
+  if(F.length>1){let k=0;const git=n=>{k=(n+F.length)%F.length;$('#gi').src=F[k];$('#gc').textContent=(k+1)+' / '+F.length;document.querySelectorAll('.thumbs img').forEach(x=>x.classList.toggle('on',+x.dataset.k===k))};
+    $('#gl').onclick=()=>git(k-1);$('#gr').onclick=()=>git(k+1);document.querySelectorAll('.thumbs img').forEach(x=>x.onclick=()=>git(+x.dataset.k));
+    let sx=null;const g=$('#gal');g.addEventListener('touchstart',e=>sx=e.touches[0].clientX,{passive:true});g.addEventListener('touchend',e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>40)git(k+(dx<0?1:-1));sx=null});
+    F.slice(1,4).forEach(u=>{const im=new Image();im.src=u})}
+  iletisimBar(v);
+}
+yukle();
+</script>
+</body>
+</html>
