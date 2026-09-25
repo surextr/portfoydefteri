@@ -978,8 +978,14 @@ function dbOpen(){return new Promise((res,rej)=>{const r=indexedDB.open('cinarEm
 function tx(store,mode,fn){return new Promise((res,rej)=>{const t=DB.transaction(store,mode);const s=t.objectStore(store);let out;const r=fn(s);if(r)r.onsuccess=()=>out=r.result;t.oncomplete=()=>res(out);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})}
 const kvGet=k=>tx('kv','readonly',s=>s.get(k));
 const kvSet=(k,v)=>tx('kv','readwrite',s=>s.put(v,k));
-const put=(st,v)=>tx(st,'readwrite',s=>s.put(v));
-const del=(st,k)=>tx(st,'readwrite',s=>s.delete(k));
+const putRaw=(st,v)=>tx(st,'readwrite',s=>s.put(v));
+const delRaw=(st,k)=>tx(st,'readwrite',s=>s.delete(k));
+const kvGetRaw=k=>tx('kv','readonly',s=>s.get(k));
+async function put(st,v){if(st==='ilanlar'||st==='dosyalar'){v._g=Date.now();v.sync='bekliyor'}const r=await putRaw(st,v);if(st!=='kv')syncPlanla();return r}
+async function del(st,k){
+  if(st==='ilanlar'||st==='dosyalar'){const eski=await tx(st,'readonly',s=>s.get(k));
+    if(eski){const L_=(await kvGetRaw('silinenler'))||[];L_.push({tur:st==='ilanlar'?'ilan':'dosya',id:k,ilanId:eski.ilanId,ad:eski.ad,g:Date.now()});await kvSet('silinenler',L_)}}
+  const r=await delRaw(st,k);syncPlanla();return r}
 const all=st=>tx(st,'readonly',s=>s.getAll());
 const dosyalarOf=id=>tx('dosyalar','readonly',s=>s.index('ilanId').getAll(id));
 
@@ -995,7 +1001,7 @@ function pfAd(i){const t=pfTip(i);if(t==='ekip'){const k=ekipBul(i.portfoy.refId
 function pfEtiket(i){const t=pfTip(i);return `<div class="pf ${t}"><i></i>${esc(pfAd(i))}</div>`}
 function aktifTurler(ana){return S.ayarlar.turler.filter(t=>t.aktif&&(!ana||t.ana===ana))}
 
-async function ayarKaydet(){await kvSet('ayarlar',S.ayarlar);temaUygula()}
+async function ayarKaydet(yerel){if(!yerel){S.ayarlar._g=Date.now();S.ayarlar._bekliyor=true}await kvSet('ayarlar',S.ayarlar);temaUygula();if(!yerel)syncPlanla()}
 function temaUygula(){const c=S.ayarlar.renk||'#3C7922';const r=document.documentElement.style;r.setProperty('--brand',c);r.setProperty('--brand-deep',koyulas(c,.28));const m=$('meta[name=theme-color]');if(m)m.content=koyulas(c,.28)}
 function koyulas(hex,f){const n=parseInt(hex.slice(1),16);const r=Math.round(((n>>16)&255)*(1-f)),g=Math.round(((n>>8)&255)*(1-f)),b=Math.round((n&255)*(1-f));return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('')}
 
@@ -1019,7 +1025,9 @@ async function basla(){
   const ids=new Set(S.ilanlar.map(i=>i.id));const ds=await all('dosyalar');for(const d of ds)if(!ids.has(d.ilanId))await del('dosyalar',d.id);
   const sif=await kvGet('sifre');S.acik=!sif;
   window.addEventListener('hashchange',ciz);
-  window.addEventListener('online',syncCiz);window.addEventListener('offline',syncCiz);
+  window.addEventListener('online',()=>{syncCiz();esitle()});window.addEventListener('offline',syncCiz);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)esitle()});setInterval(()=>esitle(),90000);
+  BULUT.oturum=await kvGet('oturum');setTimeout(()=>esitle(),800);
   ciz();
 }
 
@@ -1035,7 +1043,13 @@ function iskelet(aktifSayfa,icerik){
   <main>${icerik}</main>
   <nav class="bnav">${nav.map(([k,l,ic])=>k==='ekle'?`<a href="#/ekle" class="add"><span class="plus">${ic}</span>${l}</a>`:`<a href="#/${k}" class="${aktifSayfa===k?'on':''}">${ic}${l}</a>`).join('')}</nav>`;
 }
-function syncCiz(){const el=$('#sync');if(!el)return;el.innerHTML=`<i style="background:${navigator.onLine?'var(--leaf)':'#9AA59C'}"></i>${navigator.onLine?'Çevrimiçi':'Çevrimdışı'} · Bu cihazda`}
+async function bekleyenSayisi(){const orn=new Set(S.ilanlar.filter(i=>i.ornek).map(i=>i.id));const il=S.ilanlar.filter(i=>i.sync==='bekliyor'&&!i.ornek).length;let d=0;await tx('dosyalar','readonly',s=>{const r=s.openCursor();r.onsuccess=()=>{const c=r.result;if(c){if(c.value.sync==='bekliyor'&&!orn.has(c.value.ilanId))d++;c.continue()}};return null});
+  const sl=((await kvGetRaw('silinenler'))||[]).length;return il+d+sl+(S.ayarlar&&S.ayarlar._bekliyor?1:0)}
+async function syncCiz(){const el=$('#sync');if(!el)return;const on=navigator.onLine;
+  if(!BULUT.oturum){el.innerHTML=`<i style="background:${on?'var(--leaf)':'#9AA59C'}"></i>${on?'Çevrimiçi':'Çevrimdışı'} · Bu cihazda`;return}
+  const n=await bekleyenSayisi();let renk='var(--leaf)',yazi='Eşitlendi';
+  if(BULUT.calisiyor){renk='#E9A23B';yazi='Eşitleniyor…'}else if(!on){renk='#9AA59C';yazi=n?`Çevrimdışı · ${n} bekliyor`:'Çevrimdışı'}else if(BULUT.hata){renk='var(--danger)';yazi='Eşitleme hatası'}else if(n){renk='#E9A23B';yazi=`${n} kayıt bekliyor`}
+  el.innerHTML=`<i style="background:${renk}"></i>${yazi}`;el.title=BULUT.hata||''}
 
 function urlTemizle(){S.urls.forEach(u=>URL.revokeObjectURL(u));S.urls=[]}
 function objUrl(b){const u=URL.createObjectURL(b);S.urls.push(u);return u}
@@ -1509,6 +1523,131 @@ function sayi_(s){if(s==null)return null;const n=Number(String(s).replace(/\./g,
 function bulAnahtar(liste,ad){const t=trk(ad);return liste.find(x=>trk(x)===t)||liste.find(x=>trk(x).replace(/\s/g,'')===t.replace(/\s/g,''))||null}
 
 
+
+/* ========== bulut (Supabase) ========== */
+const SB_URL='https://wsbcodlvxiuiscjerziq.supabase.co',SB_KEY='sb_publishable_doEtNh3jp0LhJIYROp7XRw_CjXu7WSI',KOVA='dosyalar';
+const BULUT={oturum:null,calisiyor:false,tekrar:false,hata:'',zamanlayici:null};
+function syncPlanla(){if(!BULUT.oturum)return;clearTimeout(BULUT.zamanlayici);BULUT.zamanlayici=setTimeout(()=>esitle(),2500);syncCiz()}
+function authHata(j){const m=(j&&(j.error_code||j.code||j.error||j.msg||j.message))||'';const t=String(m)+' '+String(j&&(j.msg||j.message||j.error_description)||'');
+  if(/invalid_credentials|Invalid login/i.test(t))return 'E-posta veya şifre yanlış.';
+  if(/email_not_confirmed|not confirmed/i.test(t))return 'E-posta adresi onaylanmamış. Gelen onay e-postasındaki bağlantıya tıklayın.';
+  if(/already|exists|registered/i.test(t))return 'Bu e-postayla zaten bir hesap var. "Giriş yap"ı kullanın.';
+  if(/signup.*disabled|Signups not allowed/i.test(t))return 'Yeni hesap açma kapalı. Mevcut hesabınızla giriş yapın.';
+  if(/weak|at least|password/i.test(t))return 'Şifre en az 6 karakter olmalı.';
+  return 'İşlem yapılamadı: '+(j&&(j.msg||j.message||j.error_description||j.error)||'bilinmeyen hata')}
+async function authIstek(yol,govde){const r=await fetch(SB_URL+'/auth/v1/'+yol,{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify(govde)});
+  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(authHata(j));return j}
+async function oturumKaydet(j){BULUT.oturum={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:Date.now()+((j.expires_in||3600)-60)*1000,user:{id:j.user.id,email:j.user.email}};await kvSet('oturum',BULUT.oturum)}
+async function girisYap(eposta,sifre){await oturumKaydet(await authIstek('token?grant_type=password',{email:eposta,password:sifre}));await girisSonrasi()}
+async function hesapAc(eposta,sifre){const j=await authIstek('signup',{email:eposta,password:sifre});
+  if(!j.access_token)throw new Error('Hesap açıldı ama e-posta onayı bekleniyor. E-postanızdaki bağlantıya tıklayın, sonra "Giriş yap" deyin. (Supabase ayarlarında "Confirm email" kapatılırsa bu adım gerekmez.)');
+  await oturumKaydet(j);await girisSonrasi()}
+async function oturumKapat(){BULUT.oturum=null;await kvSet('oturum',null);await kvSet('sonCekim',null);BULUT.hata='';syncCiz()}
+async function girisSonrasi(){BULUT.hata='';
+  // örnek ilanlar sadece tanıtım içindir, buluta gitmez
+  for(const i of (await all('ilanlar')).filter(x=>x.ornek)){for(const d of await dosyalarOf(i.id))await delRaw('dosyalar',d.id);await delRaw('ilanlar',i.id)}
+  S.ilanlar=await all('ilanlar');const kul=(t,id)=>S.ilanlar.some(i=>pfTip(i)===t&&i.portfoy.refId===id);
+  S.ayarlar.ekip=(S.ayarlar.ekip||[]).filter(x=>!x.ornek||kul('ekip',x.id));S.ayarlar.disOfisler=(S.ayarlar.disOfisler||[]).filter(x=>!x.ornek||kul('dis',x.id));S.ayarlar.ornekEklendi=true;
+  // bulutta ayar varsa (başka cihaz daha önce bağlandıysa) onlar esas alınır
+  let uzakAyar=false;try{const r=await sb('/rest/v1/kayitlar?select=id&tur=eq.ayar&limit=1');if(r.ok)uzakAyar=(await r.json()).length>0}catch(e){}
+  if(uzakAyar){S.ayarlar._g=0;S.ayarlar._bekliyor=false}else{S.ayarlar._g=Date.now();S.ayarlar._bekliyor=true}
+  await ayarKaydet(true);await hepsiBekliyor();await kvSet('sonCekim',null);await kvSet('silinenler',[]);esitle()}
+async function hepsiBekliyor(){ // ilk girişte cihazdaki her şey buluta gönderilsin
+  for(const i of await all('ilanlar')){i.sync='bekliyor';i._g=i._g||i.updatedAt||Date.now();await putRaw('ilanlar',i)}
+  await tx('dosyalar','readwrite',s=>{const r=s.openCursor();r.onsuccess=()=>{const c=r.result;if(c){const v=c.value;v.sync='bekliyor';v._g=v._g||v.createdAt||Date.now();c.update(v);c.continue()}};return null});
+  S.ilanlar=await all('ilanlar')}
+async function jeton(){const o=BULUT.oturum;if(!o)throw new Error('Oturum yok');
+  if(Date.now()>o.expires_at){try{await oturumKaydet(await authIstek('token?grant_type=refresh_token',{refresh_token:o.refresh_token}))}
+    catch(e){await oturumKapat();throw new Error('Oturum süresi doldu. Ayarlar > Bulut bölümünden tekrar giriş yapın.')}}
+  return BULUT.oturum.access_token}
+async function sb(yol,ops={}){const t=await jeton();const r=await fetch(SB_URL+yol,{...ops,headers:{apikey:SB_KEY,Authorization:'Bearer '+t,...(ops.headers||{})}});
+  if(r.status===401){BULUT.oturum.expires_at=0;const t2=await jeton();return fetch(SB_URL+yol,{...ops,headers:{apikey:SB_KEY,Authorization:'Bearer '+t2,...(ops.headers||{})}})}return r}
+async function sbTamam(r,ne){if(!r.ok){let m='';try{m=(await r.json()).message}catch(e){}throw new Error(`${ne}: ${r.status} ${m||''}`.trim())}return r}
+const dosyaYolu=(d,kucuk)=>`${BULUT.oturum.user.id}/${d.ilanId}/${d.id}${kucuk?'_k':''}.${d.tip==='foto'||kucuk?'jpg':((d.ad||'').split('.').pop()||'bin').toLowerCase().replace(/[^a-z0-9]/g,'')||'bin'}`;
+async function kayitGonder(satirlar){if(!satirlar.length)return;const uid=BULUT.oturum.user.id;
+  for(let k=0;k<satirlar.length;k+=200){const parca=satirlar.slice(k,k+200).map(x=>({owner:uid,...x}));
+    await sbTamam(await sb('/rest/v1/kayitlar?on_conflict=owner,tur,id',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(parca)}),'Kayıt gönderilemedi')}}
+const temizIlan=i=>{const o={...i};delete o.sync;delete o._g;delete o._kapak;return o};
+async function esitle(){
+  if(!BULUT.oturum||!navigator.onLine||!DB)return;if(BULUT.calisiyor){BULUT.tekrar=true;return}
+  BULUT.calisiyor=true;BULUT.tekrar=false;syncCiz();let degisti=false;
+  try{
+    degisti=await cek();
+    await gonder();
+    await eksikDosyalariIndir();
+    BULUT.hata='';await kvSet('sonEsitleme',Date.now());
+  }catch(e){console.error(e);BULUT.hata=String(e.message||e)}
+  finally{BULUT.calisiyor=false;
+    if(degisti){S.ilanlar=await all('ilanlar');const h=location.hash;if(!/#\/(ekle|duzenle)/.test(h)&&!document.querySelector('.sheet-bg'))ciz()}
+    syncCiz();const ap=$('#bulutDurum');if(ap)bulutPanelCiz();if(BULUT.tekrar)setTimeout(()=>esitle(),500)}
+}
+async function cek(){let son=await kvGet('sonCekim');let degisti=false;const uyarilar=[];
+  let alt=son?new Date(new Date(son).getTime()-15000).toISOString():null;
+  for(;;){const q=`/rest/v1/kayitlar?select=tur,id,veri,guncel,silindi,sunucu&order=sunucu.asc&limit=500${alt?'&sunucu=gt.'+encodeURIComponent(alt):''}`;
+    const r=await sbTamam(await sb(q),'Veriler alınamadı');const L_=await r.json();
+    for(const k of L_){
+      if(k.tur==='ilan'){const yerel=await tx('ilanlar','readonly',s=>s.get(k.id));
+        if(k.silindi){if(yerel){for(const d of await dosyalarOf(k.id))await delRaw('dosyalar',d.id);await delRaw('ilanlar',k.id);degisti=true}}
+        else if(!yerel||(yerel._g||0)<k.guncel){if(yerel&&yerel.sync==='bekliyor')uyarilar.push(yerel.baslik||yerel.no);await putRaw('ilanlar',{...k.veri,_g:k.guncel,sync:'tamam'});degisti=true}}
+      else if(k.tur==='dosya'){const yerel=await tx('dosyalar','readonly',s=>s.get(k.id));
+        if(k.silindi){if(yerel){await delRaw('dosyalar',k.id);degisti=true}}
+        else if(yerel){if((yerel._g||0)<k.guncel){await putRaw('dosyalar',{...yerel,...k.veri,blob:yerel.blob,thumb:yerel.thumb,_g:k.guncel,sync:'tamam'});degisti=true}}
+        else{const e=(await kvGetRaw('eksikDosyalar'))||{};e[k.id]={...k.veri,_g:k.guncel};await kvSet('eksikDosyalar',e)}}
+      else if(k.tur==='ayar'){if((S.ayarlar._g||0)<k.guncel){const koru={sonYedek:S.ayarlar.sonYedek,sayac:Math.max(S.ayarlar.sayac||0,(k.veri&&k.veri.sayac)||0)};S.ayarlar={...k.veri,...koru,_g:k.guncel,_bekliyor:false};S.ayarlar.ekip=S.ayarlar.ekip||[];S.ayarlar.disOfisler=S.ayarlar.disOfisler||[];await ayarKaydet(true);degisti=true}}
+      son=k.sunucu}
+    await kvSet('sonCekim',son);alt=son;if(L_.length<500)break}
+  if(uyarilar.length)toast(`${uyarilar.length} ilan başka cihazda daha yeni düzenlenmiş; son hali alındı.`);
+  return degisti}
+async function eksikDosyalariIndir(){const e=(await kvGetRaw('eksikDosyalar'))||{};const ids=Object.keys(e);if(!ids.length)return;
+  for(const id of ids){const m=e[id];try{
+      const al=async yol=>{const r=await sb(`/storage/v1/object/authenticated/${KOVA}/${yol}`);if(!r.ok)throw new Error('indirilemedi '+r.status);return await r.blob()};
+      const blob=await al(dosyaYolu(m,false));let thumb=null;if(m.tip==='foto'){try{thumb=await al(dosyaYolu(m,true))}catch(x){}}
+      const t=(blob.type&&blob.type!=='application/octet-stream')?blob:new Blob([blob],{type:m.tip==='foto'?'image/jpeg':(m.mime||'application/octet-stream')});
+      await putRaw('dosyalar',{...m,blob:t,thumb,sync:'tamam'});delete e[id];await kvSet('eksikDosyalar',e);
+      if(/#\/ilan\//.test(location.hash)&&location.hash.includes(m.ilanId))ciz()}
+    catch(x){console.warn('dosya indirilemedi',id,x)}}
+  S.ilanlar=await all('ilanlar')}
+async function gonder(){
+  // silinenler
+  const sil=(await kvGetRaw('silinenler'))||[];
+  if(sil.length){const yollar=sil.filter(x=>x.tur==='dosya'&&x.ilanId).flatMap(x=>[dosyaYolu({id:x.id,ilanId:x.ilanId,tip:'foto'},false),dosyaYolu({id:x.id,ilanId:x.ilanId,tip:'foto'},true),dosyaYolu({id:x.id,ilanId:x.ilanId,tip:'belge',ad:x.ad},false)]);
+    if(yollar.length)await sb(`/storage/v1/object/${KOVA}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefixes:[...new Set(yollar)]})}).catch(()=>{});
+    await kayitGonder(sil.map(x=>({tur:x.tur,id:x.id,veri:null,guncel:x.g,silindi:true})));
+    const simdi=(await kvGetRaw('silinenler'))||[];await kvSet('silinenler',simdi.slice(sil.length))}
+  // ayarlar
+  if(S.ayarlar._bekliyor){const g=S.ayarlar._g;const v={...S.ayarlar};delete v._g;delete v._bekliyor;delete v.sonYedek;
+    await kayitGonder([{tur:'ayar',id:'ayarlar',veri:v,guncel:g,silindi:false}]);if(S.ayarlar._g===g){S.ayarlar._bekliyor=false;await ayarKaydet(true)}}
+  // dosyalar (önce, ilan kaydı gelmeden fotoğraf eksik görünmesin)
+  const ornekIds=new Set(S.ilanlar.filter(i=>i.ornek).map(i=>i.id));
+  const ds=[];await tx('dosyalar','readonly',s=>{const r=s.openCursor();r.onsuccess=()=>{const c=r.result;if(c){if(c.value.sync==='bekliyor'&&!ornekIds.has(c.value.ilanId))ds.push(c.value);c.continue()}};return null});
+  for(const d of ds){
+    const yukle=async(yol,b)=>sbTamam(await sb(`/storage/v1/object/${KOVA}/${yol}`,{method:'POST',headers:{'x-upsert':'true','Content-Type':b.type||'application/octet-stream'},body:b}),'Dosya yüklenemedi');
+    if(d.blob)await yukle(dosyaYolu(d,false),d.blob);if(d.thumb)await yukle(dosyaYolu(d,true),d.thumb);
+    const meta={id:d.id,ilanId:d.ilanId,tip:d.tip,ad:d.ad,sira:d.sira,cekim:d.cekim,createdAt:d.createdAt,mime:d.blob&&d.blob.type};
+    await kayitGonder([{tur:'dosya',id:d.id,veri:meta,guncel:d._g,silindi:false}]);
+    const guncel=await tx('dosyalar','readonly',s=>s.get(d.id));if(guncel&&guncel._g===d._g){guncel.sync='tamam';await putRaw('dosyalar',guncel)}
+    syncCiz()}
+  // ilanlar
+  const il=(await all('ilanlar')).filter(i=>i.sync==='bekliyor'&&!i.ornek);
+  if(il.length){await kayitGonder(il.map(i=>({tur:'ilan',id:i.id,veri:temizIlan(i),guncel:i._g||Date.now(),silindi:false})));
+    for(const i of il){const g=await tx('ilanlar','readonly',s=>s.get(i.id));if(g&&g._g===i._g){g.sync='tamam';await putRaw('ilanlar',g)}}
+    S.ilanlar=await all('ilanlar')}
+}
+function bulutPanelCiz(){const el=$('#bulutDurum');if(!el)return;const o=BULUT.oturum;
+  if(!o){el.innerHTML=`<p class="small muted" style="margin-top:-6px">Açınca ilanlarınız, fotoğraflarınız ve ayarlarınız buluta yedeklenir; telefon ve bilgisayar aynı hesapla birbirini görür. İnternet yokken çalışmaya devam edersiniz, bağlantı gelince eşitlenir.</p>
+    <div class="grid c2"><label class="f"><span>E-posta</span><input type="email" id="bE" autocomplete="username" value="${esc(S.ayarlar.firma.eposta||'')}"></label><label class="f"><span>Şifre</span><input type="password" id="bS" autocomplete="current-password"></label></div>
+    <div class="actions" style="margin-top:10px"><button class="btn pri" id="bGiris">Giriş yap</button><button class="btn" id="bHesap">Hesap oluştur</button></div>
+    <p class="small muted">İlk cihazda bir kez "Hesap oluştur", diğer cihazlarda aynı bilgilerle "Giriş yap" deyin.</p><p class="small" id="bMesaj" style="color:var(--danger)"></p>`;
+    const calis=async(fn,b)=>{const e=$('#bE').value.trim(),s_=$('#bS').value;if(!e||!s_){$('#bMesaj').textContent='E-posta ve şifreyi yazın.';return}b.disabled=true;$('#bMesaj').textContent='';
+      try{await fn(e,s_);toast('Bulut açıldı, eşitleniyor…');bulutPanelCiz()}catch(x){$('#bMesaj').textContent=x.message}finally{b.disabled=false}};
+    $('#bGiris').onclick=e=>calis(girisYap,e.target);$('#bHesap').onclick=e=>calis(hesapAc,e.target);return}
+  kvGet('sonEsitleme').then(async t=>{const n=await bekleyenSayisi();const eks=Object.keys((await kvGet('eksikDosyalar'))||{}).length;
+    el.innerHTML=`<table class="kv"><tr><td>Hesap</td><td>${esc(o.user.email)}</td></tr><tr><td>Son eşitleme</td><td>${t?tarih(t):'Henüz yok'}</td></tr>
+      <tr><td>Durum</td><td>${BULUT.calisiyor?'Eşitleniyor…':BULUT.hata?`<span style="color:var(--danger)">${esc(BULUT.hata)}</span>`:n?n+' kayıt gönderilmeyi bekliyor':'Her şey eşitlendi'}${eks?` · ${eks} dosya indirilecek`:''}</td></tr></table>
+      <div class="actions" style="margin-top:10px"><button class="btn pri" id="bSimdi">Şimdi eşitle</button><button class="btn" id="bCikis">Oturumu kapat</button></div>
+      <p class="small muted">Oturumu kapatınca bu cihazdaki veriler silinmez, sadece eşitleme durur.</p>`;
+    $('#bSimdi').onclick=()=>{esitle();setTimeout(bulutPanelCiz,300)};$('#bCikis').onclick=async()=>{if(!confirm('Oturum kapatılsın mı? Bu cihazdaki veriler kalır, eşitleme durur.'))return;await oturumKapat();bulutPanelCiz()}})}
+
 /* ========== paylaşım ========== */
 function secim(baslik,aciklama,secenekler){return new Promise(res=>{const bg=document.createElement('div');bg.className='sheet-bg';
   bg.innerHTML=`<div class="sheet" role="dialog" aria-modal="true"><h2>${esc(baslik)}</h2><p class="muted small">${esc(aciklama)}</p>
@@ -1702,6 +1841,7 @@ function ayarlarSayfa(){
     </div><button class="btn pri" id="turEkle" style="margin-top:10px">Türü ekle</button>
     <p class="small muted">Özel türlerin sahibinden'de birebir karşılığı yoktur; aktarırken en yakın türü seçmeniz gerekir.</p></details>
   </div>
+  <div class="panel"><h2>Bulut ve eşitleme</h2><div id="bulutDurum"></div></div>
   <div class="panel"><h2>Yedekleme</h2>
    <p class="small muted" style="margin-top:-6px">Tüm ilanlar, fotoğraflar, belgeler ve ayarlar tek bir dosyaya kaydedilir. Bu dosyayla başka cihaza aktarabilir ya da kayıptan sonra geri yükleyebilirsiniz.${a.sonYedek?` Son yedek: <b>${tarih(a.sonYedek)}</b>.`:' Henüz yedek alınmadı.'}</p>
    <div class="actions"><button class="btn pri" id="yedekAl">Yedek al</button><label class="btn">Yedek yükle<input type="file" id="yedekIn" accept=".json,application/json" hidden></label></div>
@@ -1713,7 +1853,7 @@ function ayarlarSayfa(){
   </div>
   <div class="panel"><h2>Örnek ilanlar</h2><p class="small muted" style="margin-top:-6px">Programı tanımanız için eklenen, "Örnek" etiketli ilanlar. Şu an ${S.ilanlar.filter(i=>i.ornek).length} örnek ilan var.</p>
    <div class="actions"><button class="btn danger" id="ornekSil" ${S.ilanlar.some(i=>i.ornek)?'':'disabled'}>Örnek ilanları sil</button><button class="btn" id="ornekYeni">Örnek ilanları yeniden ekle</button></div></div>
-  <p class="small muted">Portföy Defteri · Sürüm ${SURUM} · Veriler bu cihazda saklanıyor · ${S.ilanlar.length} ilan${/^https?:$/.test(location.protocol)?' · '+location.host:''}</p>`;
+  <p class="small muted">Portföy Defteri · Sürüm ${SURUM} · ${BULUT.oturum?'Veriler cihazda ve bulutta':'Veriler bu cihazda saklanıyor'} · ${S.ilanlar.length} ilan${/^https?:$/.test(location.protocol)?' · '+location.host:''}</p>`;
   $('#app').innerHTML=iskelet('ayarlar',html);
   kvGet('sifre').then(s=>{$('#sifreDurum').textContent=s?'Program açılışta şifre soruyor.':'Şifre yok: program açılışta şifre sormuyor. Telefonunuzu başkası kullanıyorsa şifre koymanızı öneririz.';$('#sifreKaldir').hidden=!s;$('#kilitle').hidden=!s});
   $('#firmaKaydet').onclick=async()=>{$$('[data-firma]').forEach(el=>f[el.dataset.firma]=el.value.trim());await ayarKaydet();toast('Firma bilgileri kaydedildi');ciz()};
@@ -1730,6 +1870,7 @@ function ayarlarSayfa(){
   $('#turEkle').onclick=async()=>{const ad=$('#yTur').value.trim();if(!ad){toast('Tür adını yazın');return}
     if(a.turler.some(t=>t.ad.toLocaleLowerCase('tr')===ad.toLocaleLowerCase('tr')&&t.ana===$('#yAna').value)){toast('Bu tür zaten var');return}
     a.turler.push({id:'o'+uid().slice(0,8),ana:$('#yAna').value,ad,aktif:true,ozel:true,ekAlanlar:$('#yEk').value.split(',').map(x=>x.trim()).filter(Boolean)});await ayarKaydet();toast(`"${ad}" eklendi`);ciz()};
+  bulutPanelCiz();
   $('#yedekAl').onclick=yedekAl;
   $$('[data-kekle]').forEach(b=>b.onclick=()=>kisiDuzenle(b.dataset.kekle,null));
   $$('[data-kdz]').forEach(b=>b.onclick=()=>{const [t,id]=b.dataset.kdz.split(':');kisiDuzenle(t,id)});
@@ -1836,7 +1977,7 @@ async function yedekAl(){
   let paylasildi=false;
   if(navigator.canShare&&navigator.canShare({files:[file]})&&/iPhone|iPad|Android/i.test(navigator.userAgent)){try{await navigator.share({files:[file],title:ad});paylasildi=true}catch(e){if(e.name==='AbortError'){if(d)d.textContent='';return}}}
   if(!paylasildi){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=ad;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000)}
-  S.ayarlar.sonYedek=Date.now();await ayarKaydet();
+  S.ayarlar.sonYedek=Date.now();await ayarKaydet(true);
   if(d)d.textContent=`Yedek hazırlandı: ${ad} (${(blob.size/1048576).toFixed(1)} MB)`;toast('Yedek alındı');
   if(!$('#yedekDurum'))ciz();
 }
@@ -1861,7 +2002,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi`);ciz();
 }
 
-const SURUM='2026.09.25-1019';
+const SURUM='2026.09.25-1138';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
