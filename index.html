@@ -1595,15 +1595,17 @@ const EN_TUR={Apartment:'Daire',Flat:'Daire',Residence:'Rezidans','Detached Hous
   'Shop & Store':'Dükkan & Mağaza',Shop:'Dükkan & Mağaza',Store:'Dükkan & Mağaza',Office:'Ofis','Warehouse':'Depo & Antrepo','Workshop':'Atölye','Factory':'Fabrika & Üretim Tesisi','Plaza Floor':'Plaza Katı','Cafe & Bar':'Kafe & Bar','Restaurant':'Restoran & Lokanta',Hotel:'Otel',Building:'Bina',
   Land:'Arsa',Plot:'Arsa',Field:'Tarla','Vineyard & Garden':'Bağ & Bahçe','Olive Grove':'Zeytinlik',Farm:'Çiftlik'};
 function sahibindenCoz(metin,eski){
+  let ekAciklama='';{const k=metin.indexOf('@@ACIKLAMA@@');if(k>=0){ekAciklama=metin.slice(k+12).trim();metin=metin.slice(0,k)}}
   const satirlar=metin.replace(/\r/g,'').split('\n').map(x=>x.replace(/\u00a0/g,' ').trim()).filter(Boolean);
   const ilan={...eski,ozellikler:{...(eski.ozellikler||{})},sahip:eski.sahip||{},ekOzellikler:eski.ekOzellikler||{}};
   const notlar=[];let sayi=0;
   // başlık
   const favIsaret=['Favorilerime Ekle','Add to Favorites'];let bas=null;for(const f of favIsaret){const x=satirlar.find(y=>y.includes(f));if(x){bas=x.split(f)[0].trim();break}}
   if(!bas){const b=satirlar.find(x=>/ - .*sahibinden\.com/.test(x));if(b)bas=b.split(' - ').slice(0,-1).join(' - ').trim()}
+  if(!bas){const k=satirlar.findIndex(x=>x==='İlan Detayı');if(k>=0&&satirlar[k+1])bas=satirlar[k+1]}
   if(bas){ilan.baslik=bas.slice(0,100);sayi++}
   // fiyat
-  for(const x of satirlar){const m=x.match(/^([\d.]+(?:,\d+)?)\s*(TL|USD|EUR|GBP|\$|€|£)(\s|$)/);if(m){ilan.fiyat=sayi_(m[1]);ilan.paraBirimi={'$':'USD','€':'EUR','£':'GBP'}[m[2]]||m[2];sayi++;break}}
+  for(const x0 of satirlar){const x=x0.replace(/^(Fiyat|Price)\s*/,'');const m=x.match(/^([\d.]+(?:,\d+)?)\s*(TL|USD|EUR|GBP|\$|€|£)(\s|$)/);if(m){ilan.fiyat=sayi_(m[1]);ilan.paraBirimi={'$':'USD','€':'EUR','£':'GBP'}[m[2]]||m[2];sayi++;break}}
   // konum
   const kon=satirlar.find(x=>/^[^/]+ \/ [^/]+ \/ [^/]+$/.test(x)&&TR[bulAnahtar(Object.keys(TR),x.split(' / ')[0])]);
   if(kon){const [il,ilce,mah]=kon.split(' / ').map(x=>x.trim());const ilK=bulAnahtar(Object.keys(TR),il);
@@ -1612,7 +1614,7 @@ function sahibindenCoz(metin,eski){
         const ms=TR[ilK][ilceK].split('|');ilan.mahalle=bulAnahtar(ms,mTemiz)||mTemiz;if(!ms.includes(ilan.mahalle))notlar.push('mahalle listede bulunamadı, elle yazıldı')}
       else notlar.push('ilçe eşleşmedi')}}
   // etiket-değer blokları
-  const bas_=satirlar.findIndex(x=>x.startsWith('İlan No')||x.startsWith('Listing No'));const son_=satirlar.findIndex((x,k)=>k>bas_&&/Şikayet|Report This Listing|Report Listing/i.test(x));
+  const bas_=satirlar.findIndex(x=>x.startsWith('İlan No')||x.startsWith('Listing No'));const son_=satirlar.findIndex((x,k)=>k>bas_&&(/Şikayet|Report This Listing|Report Listing/i.test(x)||/^(ÖZELLİKLER|Özellikler|Features)$/.test(x)));
   const blok=bas_>=0?satirlar.slice(bas_,son_>bas_?son_:undefined):satirlar;
   const ekEtiket=['İlan No','İlan Tarihi','Emlak Tipi','m² Fiyatı','Krediye Uygunluk','Depozito','Aidat'];
   const tumEtiketler=[...new Set([...Object.values(FIELDS).flat().map(f=>f.l),...ekEtiket,...Object.keys(EN_ETIKET)])].sort((a,b)=>b.length-a.length);
@@ -1642,11 +1644,15 @@ function sahibindenCoz(metin,eski){
   for(const f of FIELDS[tur.ana]||[]){if(f.t==='multi')continue;let v=deger[f.l];if(v==null)for(const a of ((ETIKET_ES[tur.ana]||{})[f.l]||[]))if(deger[a]!=null){v=deger[a];break}if(v==null)continue;
     if(f.t==='num'){const n=sayi_(v);if(n!=null){ilan.ozellikler[f.k]=n;sayi++}}
     else{ilan.ozellikler[f.k]=secenekBul(f,v);sayi++}}
+  {const k=satirlar.findIndex(x=>x==='Cephe'||x==='Frontage');const f=(FIELDS[(turBul(ilan.turId)||{}).ana]||[]).find(x=>x.k==='cephe');
+    if(k>=0&&f&&satirlar[k+1]){const EN={North:'Kuzey',South:'Güney',East:'Doğu',West:'Batı'};const L_=satirlar[k+1].split(/,\s*/).map(x=>EN[x.trim()]||x.trim());
+      if(L_.length&&L_.every(x=>f.o.includes(x))&&(satirlar[k+1].includes(',')||L_.length===1)){ilan.ozellikler.cephe=L_;sayi++}}}
   // sahibinden tarla, bağ-bahçe ve zeytinliği 'Arsa' altında imar durumuyla verir: bizim türümüze çevir
   {const tt=turBul(ilan.turId);const imr=ilan.ozellikler.imar;if(tt&&tt.ana==='arazi'&&tt.ad==='Arsa'&&['Tarla','Bağ & Bahçe','Zeytinlik'].includes(imr)){const yeni=S.ayarlar.turler.find(t=>t.ana==='arazi'&&t.ad===imr);if(yeni){ilan.turId=yeni.id;if(!yeni.aktif)notlar.push(`"${yeni.ad}" türü ayarlarda kapalı`)}}}
   // açıklama
-  let a=-1;satirlar.forEach((x,k)=>{if(x==='Açıklama'||x==='Description')a=k});
-  if(a>=0){let b=satirlar.findIndex((x,k)=>k>a&&(x==='Özellikler'||x==='Features'));if(b<0)b=satirlar.length;const ac=satirlar.slice(a+1,b).join('\n').trim();if(ac){ilan.aciklama=ac;sayi++}}
+  if(ekAciklama){ilan.aciklama=ekAciklama;sayi++}
+  let a=-1;if(!ekAciklama)satirlar.forEach((x,k)=>{if(x==='Açıklama'||x==='Description'){const sonra=satirlar.slice(k+1,k+8).join('\n');if(!/^(İlan No|İlan Tarihi|Fiyat|Emlak Tipi|Listing No)/m.test(sonra))a=k}});
+  if(a>=0){let b=satirlar.findIndex((x,k)=>k>a&&/^(Özellikler|ÖZELLİKLER|Features)$/.test(x));if(b<0)b=satirlar.length;const ac=satirlar.slice(a+1,b).join('\n').trim();if(ac){ilan.aciklama=ac;sayi++}}
   return {ilan,sayi,notlar};
 }
 function sayi_(s){if(s==null)return null;const n=Number(String(s).replace(/\./g,'').replace(',','.').replace(/[^\d.]/g,''));return String(s).match(/\d/)?n:null}
@@ -2567,7 +2573,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.09.27-0422';
+const SURUM='2026.09.27-0455';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
