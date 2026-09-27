@@ -1936,7 +1936,7 @@ async function musteriyeGonder(m,ilanlar,talepId){
       `Merhaba ${ilk}, aradığınız özelliklere uygun ilanlarımız var:\n\n`+ilanlar.map((i,k)=>{const oz=kisaOzellikler(i).slice(0,4).map(x=>x[1]).join(' · ');return `${k+1}) ${i.baslik}\n${i.islem} ${(turBul(i.turId)||{}).ad||''} · ${fiyatYazi(i)}\n${[i.mahalle,i.ilce,i.il].filter(Boolean).join(', ')}${oz?'\n'+oz:''}`}).join('\n\n')}
     else if(sec==='pdf'){const i=ilanlar[0];const fotolar=(await dosyalarOf(i.id)).filter(d=>d.tip==='foto').sort((a,b)=>a.sira-b.sira);
       toast('Broşür hazırlanıyor…');const pdf=await pdfOlustur(await brosurSayfalari(i,fotolar),i.baslik);const ad=dosyaAdi(i,'pdf');const file=new File([pdf],ad,{type:'application/pdf'});
-      if(mobil()&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],text:`Merhaba ${ilk}, aradığınız özelliklere uygun bir ilanımız var.`})}
+      if(mobil()&&navigator.canShare&&navigator.canShare({files:[file]})){await paylasGuvenli({files:[file],text:`Merhaba ${ilk}, aradığınız özelliklere uygun bir ilanımız var.`})}
       else{indir(file,ad);window.open(`https://wa.me/${m.tel?waNo(m.tel):''}?text=${encodeURIComponent(`Merhaba ${ilk}, aradığınız özelliklere uygun bir ilanımız var, broşürünü gönderiyorum.`)}`,'_blank');toast('PDF indirildi; WhatsApp\'ta sohbete ekleyin')}}
     if(metin){metin+=`\n\n${f.ad||''}${f.yetkili?' · '+f.yetkili:''}${f.tel?' · '+f.tel:''}`;window.open(`https://wa.me/${m.tel?waNo(m.tel):''}?text=${encodeURIComponent(metin)}`,'_blank')}
   }catch(e){if(e&&e.name==='AbortError')return;console.error(e);toast('Gönderim hazırlanamadı');return}
@@ -2088,7 +2088,7 @@ async function takvimeEkle(r){
     const det=[i&&`İlan: ${i.no} ${i.baslik}`,m&&`Müşteri: ${m.ad}${m.tel?' '+m.tel:''}`,r.not].filter(Boolean).join('\n');
     window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(bas)}&dates=${f(r.t)}/${f(r.t+(r.sure||30)*60000)}&details=${encodeURIComponent(det)}&location=${encodeURIComponent(r.yer||'')}&ctz=Europe/Istanbul`,'_blank');return}
   const blob=new Blob([icsMetin(r)],{type:'text/calendar'});const file=new File([blob],'randevu.ics',{type:'text/calendar'});
-  if(mobil()&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:bas});return}catch(e){if(e.name==='AbortError')return}}
+  if(mobil()&&navigator.canShare&&navigator.canShare({files:[file]})){try{await paylasGuvenli({files:[file],title:bas});return}catch(e){if(e.name==='AbortError')return}}
   const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download='randevu.ics';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(u);a.remove()},3000);
   toast('Takvim dosyası indirildi; açıp "Ekle" deyin')}
 
@@ -2225,6 +2225,13 @@ function linkKutuBagla(i){
     st.textContent=x.goruntu?`Link ${x.goruntu} kez açıldı · son açılma ${tarih(x.son_goruntu)}`:'Link henüz açılmadı';}).catch(()=>{})}
 
 /* ========== paylaşım ========== */
+async function paylasGuvenli(veri){
+  try{return await navigator.share(veri)}
+  catch(e){if(!e||e.name!=='NotAllowedError')throw e;
+    const tek=(veri.files||[]).length===1&&veri.files[0].type==='application/pdf';
+    const ok=await secim('Hazır',(veri.files||[]).length?(tek?'PDF broşür hazırlandı.':`${veri.files.length} fotoğraf hazırlandı.`)+' Paylaşım menüsünü açmak için dokunun.':'Paylaşım menüsünü açmak için dokunun.',[{deger:'p',ad:'Paylaş',not:'WhatsApp veya başka bir uygulama seçebilirsiniz.',ikon:IC.wa}]);
+    if(!ok){const x=new Error('vazgecildi');x.name='AbortError';throw x}
+    return await navigator.share(veri)}}
 function secim(baslik,aciklama,secenekler){return new Promise(res=>{const bg=document.createElement('div');bg.className='sheet-bg';
   bg.innerHTML=`<div class="sheet" role="dialog" aria-modal="true"><h2>${esc(baslik)}</h2><p class="muted small">${esc(aciklama)}</p>
     ${secenekler.map((o,k)=>`<button class="opt" data-k="${k}">${o.ikon||''}<div><b>${esc(o.ad)}</b><span>${esc(o.not||'')}</span></div></button>`).join('')}
@@ -2366,7 +2373,7 @@ async function paylas(tur,i,fotolar,durum){
       window.open('https://wa.me/?text='+encodeURIComponent(kisa),'_blank');durum('');await gecmiseYaz(i,'WhatsApp\'tan ilan linki olarak paylaşıldı');const lk=$('#linkKutu');if(lk){lk.innerHTML=linkKutuHtml(i);linkKutuBagla(i)}return}
     if(sec==='pdf'){durum('Broşür hazırlanıyor…');const sayfalar=await brosurSayfalari(i,fotolar);const pdf=await pdfOlustur(sayfalar,i.baslik);const ad=dosyaAdi(i,'pdf');
       const file=new File([pdf],ad,{type:'application/pdf'});const kisa=`${i.islem} ${(turBul(i.turId)||{}).ad||''} · ${fiyatYazi(i)}\n${i.baslik}`;
-      if(mobil()&&navigator.canShare&&navigator.canShare({files:[file]})){durum('Paylaşım menüsünden WhatsApp\'ı seçin.');await navigator.share({files:[file],title:i.baslik,text:kisa});durum('');await gecmiseYaz(i,'WhatsApp\'tan PDF broşür olarak paylaşıldı');return}
+      if(mobil()&&navigator.canShare&&navigator.canShare({files:[file]})){durum('Paylaşım menüsünden WhatsApp\'ı seçin.');await paylasGuvenli({files:[file],title:i.baslik,text:kisa});durum('');await gecmiseYaz(i,'WhatsApp\'tan PDF broşür olarak paylaşıldı');return}
       indir(file,ad);window.open('https://wa.me/?text='+encodeURIComponent(kisa),'_blank');
       durum(`PDF indirildi (${ad}). WhatsApp açıldı; kişiyi seçip PDF dosyasını sohbete sürükleyin veya ataç simgesinden ekleyin.`);await gecmiseYaz(i,'WhatsApp\'tan PDF broşür olarak paylaşıldı');return}
     const metin=ilanMetni(i);durum('Fotoğraflar hazırlanıyor…');const logo=await logoResim();
@@ -2374,19 +2381,19 @@ async function paylas(tur,i,fotolar,durum){
     if(mobil()&&navigator.canShare&&files.length&&navigator.canShare({files})){
       try{await navigator.clipboard.writeText(metin)}catch(e){}
       durum('Paylaşım menüsünden WhatsApp\'ı seçin. İlan metni panoya da kopyalandı; WhatsApp metni almazsa mesaj kutusuna yapıştırın.');
-      await navigator.share({files,text:metin});await gecmiseYaz(i,'WhatsApp\'tan fotoğraflı mesaj olarak paylaşıldı');return}
+      await paylasGuvenli({files,text:metin});await gecmiseYaz(i,'WhatsApp\'tan fotoğraflı mesaj olarak paylaşıldı');return}
     const hedef=(S.ayarlar._waNo||'');window.open('https://wa.me/'+hedef+'?text='+encodeURIComponent(metin),'_blank');
     durum(files.length?'WhatsApp\'a ilan metni gönderildi. Bilgisayarda fotoğraflar metinle birlikte gidemiyor; "Fotoğrafları indir" ile indirip WhatsApp\'ta sohbete sürükleyebilirsiniz.':'WhatsApp açıldı.');
     await gecmiseYaz(i,'WhatsApp\'tan fotoğraflı mesaj olarak paylaşıldı (metin)');return}
   if(tur==='foto'){durum('Fotoğraflar hazırlanıyor…');const logo=await logoResim();
     const files=[];for(const [k,f] of fotolar.entries())files.push(new File([await paylasimFotosu(f,logo)],`${i.no}-${k+1}.jpg`,{type:'image/jpeg'}));
-    if(mobil()&&navigator.canShare&&navigator.canShare({files})){durum('');await navigator.share({files});return}
+    if(mobil()&&navigator.canShare&&navigator.canShare({files})){durum('');await paylasGuvenli({files});return}
     for(const f of files){indir(f,f.name);await new Promise(r=>setTimeout(r,350))}durum(`${files.length} fotoğraf indirildi.`);return}
   if(tur==='pdf'||tur==='yazdir'){durum('Broşür hazırlanıyor…');const sayfalar=await brosurSayfalari(i,fotolar);
     if(tur==='yazdir'){const pa=$('#printArea');pa.innerHTML=sayfalar.map(cv=>`<img src="${cv.toDataURL('image/jpeg',.92)}" alt="">`).join('');
       await Promise.all($$('#printArea img').map(im=>im.decode?im.decode().catch(()=>{}):null));durum('');window.print();setTimeout(()=>pa.innerHTML='',1500);return}
     const pdf=await pdfOlustur(sayfalar,i.baslik);const ad=dosyaAdi(i,'pdf');const file=new File([pdf],ad,{type:'application/pdf'});
-    if(mobil()&&navigator.canShare&&navigator.canShare({files:[file]})){durum('');await navigator.share({files:[file],title:i.baslik});await gecmiseYaz(i,'PDF broşür paylaşıldı');return}
+    if(mobil()&&navigator.canShare&&navigator.canShare({files:[file]})){durum('');await paylasGuvenli({files:[file],title:i.baslik});await gecmiseYaz(i,'PDF broşür paylaşıldı');return}
     indir(file,ad);durum(`PDF indirildi: ${ad}`);await gecmiseYaz(i,'PDF broşür oluşturuldu')}
 }
 
@@ -2585,7 +2592,7 @@ async function yedekAl(){
   const ad=`portfoy-defteri-yedek-${new Date().toISOString().slice(0,10)}.json`;
   const file=new File([blob],ad,{type:'application/json'});
   let paylasildi=false;
-  if(navigator.canShare&&navigator.canShare({files:[file]})&&/iPhone|iPad|Android/i.test(navigator.userAgent)){try{await navigator.share({files:[file],title:ad});paylasildi=true}catch(e){if(e.name==='AbortError'){if(d)d.textContent='';return}}}
+  if(navigator.canShare&&navigator.canShare({files:[file]})&&/iPhone|iPad|Android/i.test(navigator.userAgent)){try{await paylasGuvenli({files:[file],title:ad});paylasildi=true}catch(e){if(e.name==='AbortError'){if(d)d.textContent='';return}}}
   if(!paylasildi){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=ad;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000)}
   S.ayarlar.sonYedek=Date.now();await ayarKaydet(true);
   if(d)d.textContent=`Yedek hazırlandı: ${ad} (${(blob.size/1048576).toFixed(1)} MB)`;toast('Yedek alındı');
@@ -2614,7 +2621,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.09.27-1341';
+const SURUM='2026.09.27-1348';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
