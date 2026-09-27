@@ -1345,10 +1345,12 @@ async function form(id){
   <div class="toolbar"><a class="btn ghost" href="${mevcut?'#/ilan/'+i.id:'#/ilanlar'}" id="iptal">${IC.left} Vazgeç</a></div>
   <h1>${mevcut?'İlanı düzenle':'Yeni ilan'}</h1>
   ${rapor?`<div class="banner" style="background:var(--soft);border-color:#C9DBC0;color:var(--brand-deep)"><span><b>Sahibinden'den ${rapor.sayi} bilgi alındı.</b> Kontrol edip eksikleri tamamlayın${rapor.notlar.length?': '+esc(rapor.notlar.join(' · ')):'.'} Fotoğrafları ayrıca eklemeniz gerekir.</span></div>`:''}
-  ${mevcut?'':`<details class="panel" id="iceP" ${ice?'':''}><summary style="cursor:pointer;font-weight:700;color:var(--brand-deep)">Sahibinden'den bilgi al</summary>
-    <p class="small muted">İlanı tarayıcıda açın, sayfanın tamamını seçip kopyalayın (bilgisayarda Ctrl+A, Ctrl+C; telefonda uzun basıp Tümünü Seç, Kopyala) ve aşağıya yapıştırın. Bunu formu doldurmaya başlamadan önce yapın.</p>
-    <textarea id="iceMetin" placeholder="Sahibinden ilan sayfasının metnini buraya yapıştırın"></textarea>
-    <div style="margin-top:10px"><button type="button" class="btn pri" id="iceBtn">Bilgileri doldur</button></div></details>`}
+  ${mevcut?'':`<details class="panel" id="iceP" ${ice||S.iceAcik?'':''}><summary style="cursor:pointer;font-weight:700;color:var(--brand-deep)">Sahibinden'den bilgi al</summary>
+    <p class="small muted">Sahibinden ilan sayfasının yazısını kopyalayın, sonra <b>Panodan yapıştır</b>'a basın. Bilgisayarda: sayfada Ctrl+A, Ctrl+C. iPhone'da: Safari'de açtığınız ilanda Paylaş > "Portföy'e Kopyala" kısayolu. Bunu formu doldurmaya başlamadan önce yapın.</p>
+    <button type="button" class="btn pri" id="icePano" style="width:100%;min-height:48px">${IC.copy} Panodan yapıştır ve doldur</button>
+    <details style="margin-top:10px"><summary class="small" style="cursor:pointer">Metni elle yapıştırmak için</summary>
+    <textarea id="iceMetin" placeholder="Sahibinden ilan sayfasının metnini buraya yapıştırın" style="margin-top:8px"></textarea>
+    <div style="margin-top:10px"><button type="button" class="btn" id="iceBtn">Bilgileri doldur</button></div></details></details>`}
   <form id="f" novalidate>
    <div class="panel"><h2>Temel bilgiler</h2>
     <div class="grid c3">
@@ -1440,9 +1442,15 @@ async function form(id){
   await fotoCiz();await belgeCiz();
   $('#fotoInput').onchange=e=>fotoEkle([...e.target.files]).then(()=>e.target.value='');
   $('#belgeInput').onchange=e=>belgeEkle([...e.target.files]).then(()=>e.target.value='');
-  const ib=$('#iceBtn');if(ib)ib.onclick=()=>{const t=$('#iceMetin').value;if(!t.trim()){toast('Önce ilan metnini yapıştırın');return}
+  const iceUygula=t=>{if(!t||!t.trim()){toast('Önce ilan metnini kopyalayın');return}
     const r=sahibindenCoz(t,i);if(!r.sayi){toast('Metinde ilan bilgisi bulunamadı. Sayfanın tamamını kopyaladığınızdan emin olun.');return}
     S.ice=r.ilan;S.iceRapor=r;form(null)};
+  const ib=$('#iceBtn');if(ib)ib.onclick=()=>iceUygula($('#iceMetin').value);
+  const ip=$('#icePano');if(ip)ip.onclick=async()=>{let t='';
+    try{t=await navigator.clipboard.readText()}catch(e){toast('Pano okunamadı. Aşağıdaki "Metni elle yapıştırmak için" bölümünü açıp kutuya uzun basarak Yapıştır deyin.');const d=ip.nextElementSibling;if(d)d.open=true;return}
+    if(!t.trim()){toast('Pano boş görünüyor. Önce ilan sayfasının yazısını kopyalayın.');return}
+    if(!/İlan No|Listing No|sahibinden/i.test(t)){toast('Panodaki yazı bir sahibinden ilanına benzemiyor. Sayfanın tamamını kopyaladığınızdan emin olun.');return}
+    iceUygula(t)};
   $('#f').addEventListener('input',()=>FORM.degisti=true);
   $('#f').onsubmit=e=>{e.preventDefault()};
   $('#kaydet').onclick=e=>{e.preventDefault();kaydet(i,mevcut,islemDoldur)};
@@ -2559,7 +2567,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.09.25-2141';
+const SURUM='2026.09.27-0422';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
