@@ -1602,10 +1602,12 @@ function iletisimTemizle(metin){
   const iletisimSatiri=/^(detaylı bilgi|bilgi için|iletişim|irtibat|arayınız|aramanız|bizi arayın|whatsapp|gsm|tel\b|telefon|cep\b|ofis tel|yetkili danışman|danışman(ımız)?\s*[:;]|e-?posta|mail|www\.|https?:\/\/)/;
   let n=0;const out=[];
   for(const satir of String(metin).split('\n')){let l=satir;const once=l;
+    let yetkiVar=false;l=l.replace(/(taşınmaz ticareti\s*)?yetki\s*belge(si)?\s*(no|numarası)?\s*[:.]?\s*\d{5,8}/gi,()=>{n++;yetkiVar=true;return ''});
+    if(yetkiVar&&l.trim().length<110)continue;
     l=l.replace(tel,()=>{n++;return ''}).replace(/\S+@\S+\.\S+/g,()=>{n++;return ''}).replace(/https?:\/\/\S+|www\.\S+/gi,()=>{n++;return ''});
     const kalan=l.replace(/[\s:;,.\-–—|/()•*]+/g,' ').trim();
     if(l!==once&&(kalan.length<40||/arayın|arayınız|ulaş|iletişim|danışman|numara/.test(trk(kalan))))continue;
-    if((iletisimSatiri.test(trk(l.trim()))&&l.trim().length<60)||(/detaylı bilgi|tıklayınız|tıklayın|diğer ilanlarımız|alternatif ilanlarımız|tüm ilanlarımız|mağazamız|hizmet vermekteyiz|ekibimiz tarafından|ofisimiz/.test(trk(l))&&l.trim().length<110)){n++;continue}
+    if((iletisimSatiri.test(trk(l.trim()))&&l.trim().length<60)||(/detaylı bilgi|tıklayınız|tıklayın|diğer ilanlarımız|alternatif ilanlarımız|tüm ilanlarımız|mağazamız|hizmet vermekteyiz|hizmet vermektedir|ekibimiz tarafından|ofisimiz|yetki belge|yetki no|belge no|taşınmaz ticareti|eids/.test(trk(l))&&l.trim().length<110)){n++;continue}
     out.push(l.replace(/[ \t]{2,}/g,' ').trimEnd())}
   return {metin:out.join('\n').replace(/\n{3,}/g,'\n\n').trim(),n}}
 function sahibindenCoz(metin,eski){
@@ -2594,7 +2596,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.09.27-1156';
+const SURUM='2026.09.27-1238';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
