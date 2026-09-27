@@ -1055,7 +1055,7 @@ async function basla(){
   await dbOpen();
   if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
   let a=await kvGet('ayarlar');
-  if(!a){a={firma:{ad:'Çınar Emlak',logo:DEFAULT_LOGO,yetkili:'',tel:'',whatsapp:'',eposta:'',adres:'',web:'',yetkiNo:''},renk:'#3C7922',varsayilanIl:'Antalya',konumGosterim:'yaklasik',turler:DEF_TURLER,sonYedek:null,sayac:0};await kvSet('ayarlar',a)}
+  if(!a){a={firma:{ad:'',logo:'',yetkili:'',tel:'',whatsapp:'',eposta:'',adres:'',web:'',yetkiNo:''},renk:'#3C7922',varsayilanIl:'Antalya',konumGosterim:'yaklasik',turler:DEF_TURLER,sonYedek:null,sayac:0};await kvSet('ayarlar',a)}
   a.ekip=a.ekip||[];a.disOfisler=a.disOfisler||[];{const of=a.turler.find(t=>!t.ozel&&t.ana==='isyeri'&&t.ad==='Ofis');if(of)of.ad='Ofis & Büro'}S.ayarlar=a;temaUygula();
   await ilanlariYukle();S.musteriler=await all('musteriler');S.randevular=await all('randevular');
   if(!a.ornekEklendi){await ornekEkle();a.ornekEklendi=true;await ayarKaydet()}
@@ -1065,7 +1065,9 @@ async function basla(){
   window.addEventListener('hashchange',ciz);
   window.addEventListener('online',()=>{syncCiz();esitle()});window.addEventListener('offline',syncCiz);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)esitle()});setInterval(()=>esitle(),90000);
-  BULUT.oturum=await kvGet('oturum');setTimeout(async()=>{await copTemizle();esitle()},800);
+  BULUT.oturum=await kvGet('oturum');if(BULUT.oturum&&!(await kvGet('sahipId')))await kvSet('sahipId',BULUT.oturum.user.id);
+  if(/type=recovery/.test(location.hash)&&/access_token=/.test(location.hash)){await sifreYenileEkrani();return}
+  setTimeout(async()=>{await copTemizle();esitle()},800);
   ciz();
 }
 
@@ -1076,7 +1078,7 @@ function iskelet(aktifSayfa,icerik){
   const topnav=[['ilanlar','İlanlar'],['musteriler','Müşteriler'],['ajanda','Ajanda'],['harita','Harita'],['raporlar','Raporlar'],['ekle','İlan Ekle'],['ayarlar','Ayarlar']];
   const bek=bekleyenEslesmeSayisi();const bug=bugunSayisi();const aktifB=aktifSayfa==='arsiv'||aktifSayfa==='harita'?'ilanlar':aktifSayfa==='raporlar'?'ajanda':aktifSayfa;appRozet(bug);
   return `<header class="top"><div class="top-in">
-    <a class="brand" href="#/ilanlar">${f.logo?`<img src="${f.logo}" alt="">`:''}<span class="bn"><b>${esc(f.ad||'Portföy Defteri')}</b><small>Portföy Defteri</small></span></a>
+    <a class="brand" href="#/ilanlar">${f.logo?`<img src="${f.logo}" alt="">`:''}<span class="bn"><b>${esc(f.ad||'Portföy Defteri')}</b>${f.ad?'<small>Portföy Defteri</small>':''}</span></a>
     <nav class="topnav">${topnav.map(([k,l])=>`<a href="#/${k}" class="${k==='ekle'?'add':''} ${aktifSayfa===k?'on':''}">${l}${k==='musteriler'&&bek?` <span class="nb">${bek}</span>`:''}${k==='ajanda'&&bug?` <span class="nb">${bug}</span>`:''}</a>`).join('')}</nav>
     <div class="sync" id="sync"></div>
   </div></header>
@@ -1159,7 +1161,7 @@ async function liste(mod){
   const kap=await kapaklariYukle();
   const say=k=>k==='cop'?S.cop.length:S.ilanlar.filter(i=>k==='aktif'?['Aktif','Opsiyonlu'].includes(i.durum):k==='pasif'?i.durum==='Pasif':ARSIV.includes(i.durum)).length;
   const ilkIlan=Math.min(...S.ilanlar.map(i=>i.createdAt||Date.now()));const yedekUyari=!BULUT.oturum&&S.ilanlar.length&&(S.ayarlar.sonYedek?Date.now()-S.ayarlar.sonYedek>15*864e5:(Date.now()-ilkIlan>3*864e5||S.ilanlar.length>=5));
-  const baslik=mod==='arsiv'?'Arşiv':'İlanlar';const eslKutu=mod==='arsiv'?'':bugunKutusuHtml()+eslesmeKutusuHtml();
+  const baslik=mod==='arsiv'?'Arşiv':'İlanlar';const eslKutu=mod==='arsiv'?'':(!S.ayarlar.firma.ad?`<div class="panel esl"><h2>Hoş geldiniz!</h2><p class="small" style="margin:0 0 10px">Başlamadan önce firma adınızı, adınızı, telefonunuzu ve logonuzu girin. Bu bilgiler PDF broşürlerde, ilan linklerinde ve müşterilere giden mesajlarda kullanılır.${BULUT.oturum?'':' Telefon ve bilgisayar arasında eşitleme için Ayarlar > Bulut bölümünden giriş yapın.'}</p><a class="btn pri" href="#/ayarlar">Firma bilgilerini gir</a></div>`:'')+bugunKutusuHtml()+eslesmeKutusuHtml();
   const html=`
   ${yedekUyari?`<div class="banner"><span style="flex:1 1 240px">${S.ayarlar.sonYedek?`Son yedeğiniz ${Math.floor((Date.now()-S.ayarlar.sonYedek)/864e5)} gün önce alındı.`:'Henüz yedek almadınız.'} Veriler sadece bu cihazda duruyor; yedek alarak kayba karşı koruyun.</span><button class="btn" id="hizliYedek">Şimdi yedek al</button></div>`:''}
   ${eslKutu}
@@ -1702,8 +1704,28 @@ async function girisYap(eposta,sifre){await oturumKaydet(await authIstek('token?
 async function hesapAc(eposta,sifre){const j=await authIstek('signup',{email:eposta,password:sifre});
   if(!j.access_token)throw new Error('Hesap açıldı ama e-posta onayı bekleniyor. E-postanızdaki bağlantıya tıklayın, sonra "Giriş yap" deyin. (Supabase ayarlarında "Confirm email" kapatılırsa bu adım gerekmez.)');
   await oturumKaydet(j);await girisSonrasi()}
+async function sifreYenileEkrani(){
+  const q=new URLSearchParams(location.hash.slice(1));const tok=q.get('access_token'),ref=q.get('refresh_token'),sure=+q.get('expires_in')||3600;
+  history.replaceState(null,'',location.pathname+'#/ayarlar');
+  $('#app').innerHTML=`<div class="lock"><form class="box" id="yf"><h2>Yeni şifre belirleyin</h2><p class="muted small">Portföy Defteri hesabınız için yeni bir şifre yazın.</p>
+    <input type="password" id="y1" placeholder="Yeni şifre (en az 6 karakter)" autocomplete="new-password" style="margin-bottom:8px"><input type="password" id="y2" placeholder="Yeni şifre (tekrar)" autocomplete="new-password" style="margin-bottom:10px">
+    <button class="btn pri" style="width:100%">Şifreyi kaydet</button><p id="ye" class="small" style="color:var(--danger);min-height:1.5em"></p></form></div>`;
+  $('#yf').onsubmit=async e=>{e.preventDefault();const a=$('#y1').value,b=$('#y2').value;if(a.length<6){$('#ye').textContent='Şifre en az 6 karakter olmalı.';return}if(a!==b){$('#ye').textContent='Şifreler aynı değil.';return}
+    try{const r=await fetch(SB_URL+'/auth/v1/user',{method:'PUT',headers:{apikey:SB_KEY,Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({password:a})});
+      const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(authHata(j));
+      await oturumKaydet({access_token:tok,refresh_token:ref,expires_in:sure,user:j});toast('Şifreniz yenilendi');await girisSonrasi();ciz()}
+    catch(x){$('#ye').textContent=x.message||'Şifre kaydedilemedi. Bağlantının süresi dolmuş olabilir, tekrar isteyin.'}}}
 async function oturumKapat(){BULUT.oturum=null;await kvSet('oturum',null);await kvSet('sonCekim',null);BULUT.hata='';syncCiz()}
+async function cihazVerisiniSil(){
+  for(const st of ['ilanlar','dosyalar','musteriler','randevular'])await tx(st,'readwrite',s0=>s0.clear());
+  for(const k of ['silinenler','sonCekim','eksikDosyalar','sonEsitleme'])await kvSet(k,null);
+  const eski=S.ayarlar;S.ayarlar={firma:{ad:'',logo:'',yetkili:'',tel:'',whatsapp:'',eposta:'',adres:'',web:'',yetkiNo:''},renk:'#3C7922',varsayilanIl:eski.varsayilanIl||'Antalya',konumGosterim:'yaklasik',turler:DEF_TURLER.map(t=>({...t})),sonYedek:null,sayac:0,ekip:[],disOfisler:[],ornekEklendi:true};
+  await kvSet('ayarlar',S.ayarlar);await ilanlariYukle();S.musteriler=[];S.randevular=[];temaUygula()}
 async function girisSonrasi(){BULUT.hata='';
+  {const uid=BULUT.oturum.user.id,onceki=await kvGet('sahipId');const gercek=(await all('ilanlar')).filter(i=>!i.ornek).length+(await all('musteriler')).length;
+    if(onceki&&onceki!==uid){if(!confirm('Bu cihazda başka bir hesaba ait veriler var. Devam ederseniz bu cihazdaki veriler silinecek ve sizin hesabınızın verileri yüklenecek. (Diğer hesabın buluttaki verileri etkilenmez.)\n\nDevam edilsin mi?')){await oturumKapat();throw new Error('Giriş iptal edildi.')}await cihazVerisiniSil()}
+    else if(!onceki&&gercek&&!confirm(`Bu cihazda daha önce girilmiş ${gercek} kayıt (ilan/müşteri) var. Bunlar hesabınıza (${BULUT.oturum.user.email}) aktarılsın mı?\n\nTamam: aktar · İptal: bu cihazdan sil`))await cihazVerisiniSil();
+    await kvSet('sahipId',uid)}
   // örnek ilanlar sadece tanıtım içindir, buluta gitmez
   for(const i of (await all('ilanlar')).filter(x=>x.ornek)){for(const d of await dosyalarOf(i.id))await delRaw('dosyalar',d.id);await delRaw('ilanlar',i.id)}
   await ilanlariYukle();const kul=(t,id)=>S.ilanlar.some(i=>pfTip(i)===t&&i.portfoy.refId===id);
@@ -1807,17 +1829,23 @@ async function gonder(){
 function bulutPanelCiz(){const el=$('#bulutDurum');if(!el)return;const o=BULUT.oturum;
   if(!o){el.innerHTML=`<p class="small muted" style="margin-top:-6px">Açınca ilanlarınız, fotoğraflarınız ve ayarlarınız buluta yedeklenir; telefon ve bilgisayar aynı hesapla birbirini görür. İnternet yokken çalışmaya devam edersiniz, bağlantı gelince eşitlenir.</p>
     <div class="grid c2"><label class="f"><span>E-posta</span><input type="email" id="bE" autocomplete="username" value="${esc(S.ayarlar.firma.eposta||'')}"></label><label class="f"><span>Şifre</span><input type="password" id="bS" autocomplete="current-password"></label></div>
-    <div class="actions" style="margin-top:10px"><button class="btn pri" id="bGiris">Giriş yap</button><button class="btn" id="bHesap">Hesap oluştur</button></div>
+    <div class="actions" style="margin-top:10px"><button class="btn pri" id="bGiris">Giriş yap</button><button class="btn" id="bHesap">Hesap oluştur</button><button class="btn ghost" id="bUnut">Şifremi unuttum</button></div>
     <p class="small muted">İlk cihazda bir kez "Hesap oluştur", diğer cihazlarda aynı bilgilerle "Giriş yap" deyin.</p><p class="small" id="bMesaj" style="color:var(--danger)"></p>`;
     const calis=async(fn,b)=>{const e=$('#bE').value.trim(),s_=$('#bS').value;if(!e||!s_){$('#bMesaj').textContent='E-posta ve şifreyi yazın.';return}b.disabled=true;$('#bMesaj').textContent='';
       try{await fn(e,s_);toast('Bulut açıldı, eşitleniyor…');bulutPanelCiz()}catch(x){$('#bMesaj').textContent=x.message}finally{b.disabled=false}};
+    $('#bUnut').onclick=async()=>{const e=$('#bE').value.trim();if(!e){$('#bMesaj').textContent='Önce e-posta adresinizi yazın.';return}
+      try{const r=await fetch(SB_URL+'/auth/v1/recover?redirect_to='+encodeURIComponent(location.origin+location.pathname),{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({email:e})});
+        if(!r.ok)throw new Error(authHata(await r.json().catch(()=>({}))));$('#bMesaj').style.color='var(--brand-deep)';$('#bMesaj').textContent='Şifre yenileme bağlantısı e-postanıza gönderildi. Bağlantıyı bu cihazda açın.'}
+      catch(x){$('#bMesaj').textContent=x.message}};
     $('#bGiris').onclick=e=>calis(girisYap,e.target);$('#bHesap').onclick=e=>calis(hesapAc,e.target);return}
   kvGet('sonEsitleme').then(async t=>{const n=await bekleyenSayisi();const eks=Object.keys((await kvGet('eksikDosyalar'))||{}).length;
     el.innerHTML=`<table class="kv"><tr><td>Hesap</td><td>${esc(o.user.email)}</td></tr><tr><td>Son eşitleme</td><td>${t?tarih(t):'Henüz yok'}</td></tr>
       <tr><td>Durum</td><td>${BULUT.calisiyor?'Eşitleniyor…':BULUT.hata?`<span style="color:var(--danger)">${esc(BULUT.hata)}</span>`:n?n+' kayıt gönderilmeyi bekliyor':'Her şey eşitlendi'}${eks?` · ${eks} dosya indirilecek`:''}</td></tr></table>
       <div class="actions" style="margin-top:10px"><button class="btn pri" id="bSimdi">Şimdi eşitle</button><button class="btn" id="bCikis">Oturumu kapat</button></div>
       <p class="small muted">Oturumu kapatınca bu cihazdaki veriler silinmez, sadece eşitleme durur.</p>`;
-    $('#bSimdi').onclick=()=>{esitle();setTimeout(bulutPanelCiz,300)};$('#bCikis').onclick=async()=>{if(!confirm('Oturum kapatılsın mı? Bu cihazdaki veriler kalır, eşitleme durur.'))return;await oturumKapat();bulutPanelCiz()}})}
+    $('#bSimdi').onclick=()=>{esitle();setTimeout(bulutPanelCiz,300)};$('#bCikis').onclick=async()=>{if(!confirm('Oturum kapatılsın mı?'))return;const bek=await bekleyenSayisi();
+      const sil=confirm('Bu cihazdaki verileri de silmek ister misiniz?\n\nCihazı başka biri de kullanıyorsa silmeniz önerilir. Verileriniz bulutta durmaya devam eder, tekrar giriş yapınca geri gelir.'+(bek?`\n\nDİKKAT: ${bek} kayıt henüz buluta gönderilmedi, silerseniz kaybolur.`:'')+'\n\nTamam: sil · İptal: cihazda kalsın');
+      await oturumKapat();if(sil){await cihazVerisiniSil();await kvSet('sahipId',null);toast('Oturum kapatıldı, cihaz temizlendi')}else toast('Oturum kapatıldı');ciz()}})}
 
 
 
@@ -2629,7 +2657,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.09.27-1413';
+const SURUM='2026.09.27-2004';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
