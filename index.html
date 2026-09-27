@@ -1662,7 +1662,6 @@ function sahibindenCoz(metin,eski){
   {const k=satirlar.findIndex(x=>x==='Cephe'||x==='Frontage');const f=(FIELDS[(turBul(ilan.turId)||{}).ana]||[]).find(x=>x.k==='cephe');
     if(k>=0&&f&&satirlar[k+1]){const EN={North:'Kuzey',South:'Güney',East:'Doğu',West:'Batı'};const L_=satirlar[k+1].split(/,\s*/).map(x=>EN[x.trim()]||x.trim());
       if(L_.length&&L_.every(x=>f.o.includes(x))&&(satirlar[k+1].includes(',')||L_.length===1)){ilan.ozellikler.cephe=L_;sayi++}}}
-  if(ilan.aciklama){const r=iletisimTemizle(ilan.aciklama);if(r.n){ilan.aciklama=r.metin;notlar.push(`açıklamadan ${r.n} telefon/iletişim satırı çıkarıldı, kontrol edin`)}}
   // sahibinden tarla, bağ-bahçe ve zeytinliği 'Arsa' altında imar durumuyla verir: bizim türümüze çevir
   {const tt=turBul(ilan.turId);const imr=ilan.ozellikler.imar;if(tt&&tt.ana==='arazi'&&tt.ad==='Arsa'&&['Tarla','Bağ & Bahçe','Zeytinlik'].includes(imr)){const yeni=S.ayarlar.turler.find(t=>t.ana==='arazi'&&t.ad===imr);if(yeni){ilan.turId=yeni.id;if(!yeni.aktif)notlar.push(`"${yeni.ad}" türü ayarlarda kapalı`)}}}
   // açıklama
@@ -1671,6 +1670,7 @@ function sahibindenCoz(metin,eski){
   if(parca.KONUM){const m=parca.KONUM.match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);if(m){const la=+m[1],lo=+m[2];if(la>35&&la<43&&lo>25&&lo<46){ilan.konum={lat:la,lng:lo};sayi++;notlar.push('konum sahibinden\'deki işaretten alındı, haritada kontrol edin')}}}
   let a=-1;if(!ekAciklama)satirlar.forEach((x,k)=>{if(x==='Açıklama'||x==='Description'){const sonra=satirlar.slice(k+1,k+8).join('\n');if(!/^(İlan No|İlan Tarihi|Fiyat|Emlak Tipi|Listing No)/m.test(sonra))a=k}});
   if(a>=0){let b=satirlar.findIndex((x,k)=>k>a&&/^(Özellikler|ÖZELLİKLER|Features)$/.test(x));if(b<0)b=satirlar.length;const ac=satirlar.slice(a+1,b).join('\n').trim();if(ac){ilan.aciklama=ac;sayi++}}
+  if(ilan.aciklama&&ilan.aciklama!==(eski.aciklama||'')){const r=iletisimTemizle(ilan.aciklama);if(r.n){ilan.aciklama=r.metin;notlar.push(`açıklamadan ${r.n} telefon/iletişim satırı çıkarıldı, kontrol edin`)}}
   return {ilan,sayi,notlar};
 }
 function sayi_(s){if(s==null)return null;const n=Number(String(s).replace(/\./g,'').replace(',','.').replace(/[^\d.]/g,''));return String(s).match(/\d/)?n:null}
@@ -2594,7 +2594,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.09.27-0555';
+const SURUM='2026.09.27-1156';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
