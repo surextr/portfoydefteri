@@ -1065,7 +1065,7 @@ async function basla(){
   window.addEventListener('hashchange',ciz);
   window.addEventListener('online',()=>{syncCiz();esitle()});window.addEventListener('offline',syncCiz);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)esitle()});setInterval(()=>esitle(),90000);
-  BULUT.oturum=await kvGet('oturum');if(BULUT.oturum&&!(await kvGet('sahipId')))await kvSet('sahipId',BULUT.oturum.user.id);
+  BULUT.oturum=await kvGet('oturum');if(BULUT.oturum&&!(await kvGet('sahipId')))await kvSet('sahipId',BULUT.oturum.user.id);S.ofis=BULUT.oturum?(await kvGet('ofisOnbellek'))||null:null;
   if(/type=recovery/.test(location.hash)&&/access_token=/.test(location.hash)){await sifreYenileEkrani();return}
   setTimeout(async()=>{await copTemizle();esitle()},800);
   ciz();
@@ -1108,6 +1108,8 @@ async function ciz(){
     if(sayfa==='ilan'&&id)return await detay(id);
     if(sayfa==='musteriler')return musteriListe();
     if(sayfa==='ajanda')return ajandaSayfa();
+    if(sayfa==='ofis')return await ofisListe();
+    if(sayfa==='ofis-ilan'&&id)return await ofisIlanDetay(decodeURIComponent(id));
     if(sayfa==='cop')return await copSayfa();
     if(sayfa==='raporlar')return raporSayfa();
     if(sayfa==='musteri'&&id)return musteriDetay(id);
@@ -1159,7 +1161,7 @@ async function liste(mod){
   const srt={yeni:(a,b)=>b.createdAt-a.createdAt,artan:(a,b)=>(a.fiyat||0)-(b.fiyat||0),azalan:(a,b)=>(b.fiyat||0)-(a.fiyat||0),guncel:(a,b)=>b.updatedAt-a.updatedAt};
   L.sort(srt[F.sirala]||srt.yeni);
   const kap=await kapaklariYukle();
-  const say=k=>k==='cop'?S.cop.length:S.ilanlar.filter(i=>k==='aktif'?['Aktif','Opsiyonlu'].includes(i.durum):k==='pasif'?i.durum==='Pasif':ARSIV.includes(i.durum)).length;
+  const say=k=>k==='ofis'?ofisPaylasilanlar().length:k==='cop'?S.cop.length:S.ilanlar.filter(i=>k==='aktif'?['Aktif','Opsiyonlu'].includes(i.durum):k==='pasif'?i.durum==='Pasif':ARSIV.includes(i.durum)).length;
   const ilkIlan=Math.min(...S.ilanlar.map(i=>i.createdAt||Date.now()));const yedekUyari=!BULUT.oturum&&S.ilanlar.length&&(S.ayarlar.sonYedek?Date.now()-S.ayarlar.sonYedek>15*864e5:(Date.now()-ilkIlan>3*864e5||S.ilanlar.length>=5));
   const baslik=mod==='arsiv'?'Arşiv':'İlanlar';const eslKutu=mod==='arsiv'?'':(!S.ayarlar.firma.ad?`<div class="panel esl"><h2>Hoş geldiniz!</h2><p class="small" style="margin:0 0 10px">Başlamadan önce firma adınızı, adınızı, telefonunuzu ve logonuzu girin. Bu bilgiler PDF broşürlerde, ilan linklerinde ve müşterilere giden mesajlarda kullanılır.${BULUT.oturum?'':' Telefon ve bilgisayar arasında eşitleme için Ayarlar > Bulut bölümünden giriş yapın.'}</p><a class="btn pri" href="#/ayarlar">Firma bilgilerini gir</a></div>`:'')+bugunKutusuHtml()+eslesmeKutusuHtml();
   const html=`
@@ -1168,7 +1170,7 @@ async function liste(mod){
   <h1>${baslik}</h1>
   ${mod==='arsiv'?'<p class="muted small" style="margin:-6px 0 12px">Satılan ve kiralanan ilanlar burada durur. Tekrar yayına alabilir ya da kalıcı olarak silebilirsiniz.</p>':''}
   <div class="toolbar">
-    <div class="seg" id="sekme">${[['aktif','Yayında'],['pasif','Pasif'],['arsiv','Arşiv'],...(S.cop.length?[['cop','Çöp']]:[])].map(([k,l])=>`<button data-k="${k}" class="${F.sekme===k?'on':''}">${l} (${say(k)})</button>`).join('')}</div>
+    <div class="seg" id="sekme">${[['aktif','Yayında'],['pasif','Pasif'],['arsiv','Arşiv'],...(S.cop.length?[['cop','Çöp']]:[]),...(S.ofis?[['ofis','Ofis']]:[])].map(([k,l])=>`<button data-k="${k}" class="${F.sekme===k?'on':''}">${l} (${say(k)})</button>`).join('')}</div>
     <input type="search" class="grow" id="q" placeholder="Ara: başlık, mahalle, ilan no, mal sahibi…" value="${esc(F.q)}">
   </div>
   <div class="toolbar">
@@ -1184,7 +1186,7 @@ async function liste(mod){
    S.ilanlar.length?`<div class="empty"><b>Bu filtreye uyan ilan yok.</b>Filtreleri değiştirin ya da aramayı temizleyin.</div>`:
    `<div class="empty"><b>Henüz ilan yok.</b><p>İlk ilanınızı ekleyerek başlayın.</p><a class="btn pri" href="#/ekle">${IC.plus} İlan ekle</a></div>`}`;
   $('#app').innerHTML=iskelet(mod==='arsiv'?'arsiv':'ilanlar',html);
-  $$('#sekme button').forEach(b=>b.onclick=()=>{const k=b.dataset.k;if(k==='cop'){location.hash='#/cop';return}if(k==='arsiv'){location.hash='#/arsiv';return}F.sekme=k;if(mod==='arsiv')location.hash='#/ilanlar';else ciz()});
+  $$('#sekme button').forEach(b=>b.onclick=()=>{const k=b.dataset.k;if(k==='ofis'){location.hash='#/ofis';return}if(k==='cop'){location.hash='#/cop';return}if(k==='arsiv'){location.hash='#/arsiv';return}F.sekme=k;if(mod==='arsiv')location.hash='#/ilanlar';else ciz()});
   let qt;$('#q').oninput=e=>{clearTimeout(qt);qt=setTimeout(async()=>{F.q=e.target.value;const pos=e.target.selectionStart;await liste(mod);const q=$('#q');q.focus();q.setSelectionRange(pos,pos)},250)};
   $('#fIslem').onchange=e=>{F.islem=e.target.value;liste(mod)};
   $('#fPf').onchange=e=>{F.pf=e.target.value;liste(mod)};
@@ -1252,6 +1254,7 @@ async function detay(id){
       <h2 style="margin-top:14px">Belgeler</h2>
       ${belgeler.length?`<ul class="docs">${belgeler.map(b=>`<li><a href="${objUrl(b.blob)}" target="_blank" rel="noopener" download="${esc(b.ad)}">${esc(b.ad)}</a><span class="small muted">${Math.round(b.blob.size/1024)} KB</span></li>`).join('')}</ul>`:'<p class="muted small">Belge eklenmemiş.</p>'}
     </div>
+    ${ofisPaylasimHtml(i)}
     ${satisOzetHtml(i)}
     ${(()=>{const R=(S.randevular||[]).filter(r=>r.ilanId===i.id&&(!r.tamam||r.t>Date.now()-30*864e5)).sort((a,b)=>a.t-b.t);return `<div class="panel"><div style="display:flex;align-items:center;gap:8px"><h2 style="margin:0">Randevular</h2><span style="flex:1"></span><button class="btn" id="iRandevu">${IC.plus} Randevu</button></div>${R.length?R.map(randevuSatiri).join(''):'<p class="small muted" style="margin:8px 0 0">Bu ilan için randevu yok.</p>'}</div>`})()}
     <div class="panel"><h2>İlan geçmişi</h2><ul class="hist">${(i.gecmis||[]).slice().reverse().map(g=>`<li><time>${tarih(g.t)}</time>${esc(g.m)}</li>`).join('')}</ul></div>
@@ -1267,7 +1270,7 @@ async function detay(id){
   if(i.konum)miniHarita($('#mm'),i.konum,i);
   $$('[data-durum]').forEach(b=>b.onclick=()=>durumDegis(i,b.dataset.durum));
   $('#copaTasi').onclick=()=>copaTasi(i);
-  linkKutuBagla(i);satisBagla(i);randevuBagla(()=>ciz());$('#iRandevu').onclick=()=>randevuFormu(null,{ilanId:i.id,tur:'Yer gösterme'},()=>ciz());
+  linkKutuBagla(i);satisBagla(i);ofisPaylasimBagla(i);randevuBagla(()=>ciz());$('#iRandevu').onclick=()=>randevuFormu(null,{ilanId:i.id,tur:'Yer gösterme'},()=>ciz());
   $$('[data-mgon]').forEach(b=>b.onclick=()=>musteriyeGonder(musteriBul(b.dataset.mgon),[i],b.dataset.talep));
   $$('[data-pay]').forEach(b=>b.onclick=async()=>{const bs=$$('[data-pay]');bs.forEach(x=>x.disabled=true);const d=$('#payDurum');
     try{await paylas(b.dataset.pay,i,fotolar,m=>d.textContent=m)}catch(e){if(e&&e.name!=='AbortError'){toast('Paylaşım yapılamadı: '+(e.name||'')+' '+(e.message||''));console.error(e)}}
@@ -1715,12 +1718,12 @@ async function sifreYenileEkrani(){
       const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(authHata(j));
       await oturumKaydet({access_token:tok,refresh_token:ref,expires_in:sure,user:j});toast('Şifreniz yenilendi');await girisSonrasi();ciz()}
     catch(x){$('#ye').textContent=x.message||'Şifre kaydedilemedi. Bağlantının süresi dolmuş olabilir, tekrar isteyin.'}}}
-async function oturumKapat(){BULUT.oturum=null;await kvSet('oturum',null);await kvSet('sonCekim',null);BULUT.hata='';syncCiz()}
+async function oturumKapat(){BULUT.oturum=null;S.ofis=null;await kvSet('ofisOnbellek',null);await kvSet('oturum',null);await kvSet('sonCekim',null);BULUT.hata='';syncCiz()}
 async function cihazVerisiniSil(){
   for(const st of ['ilanlar','dosyalar','musteriler','randevular'])await tx(st,'readwrite',s0=>s0.clear());
   for(const k of ['silinenler','sonCekim','eksikDosyalar','sonEsitleme'])await kvSet(k,null);
   const eski=S.ayarlar;S.ayarlar={firma:{ad:'',logo:'',yetkili:'',tel:'',whatsapp:'',eposta:'',adres:'',web:'',yetkiNo:''},renk:'#3C7922',varsayilanIl:eski.varsayilanIl||'Antalya',konumGosterim:'yaklasik',turler:DEF_TURLER.map(t=>({...t})),sonYedek:null,sayac:0,ekip:[],disOfisler:[],ornekEklendi:true};
-  await kvSet('ayarlar',S.ayarlar);await ilanlariYukle();S.musteriler=[];S.randevular=[];temaUygula()}
+  await kvSet('ayarlar',S.ayarlar);await ilanlariYukle();S.musteriler=[];S.randevular=[];S.ofis=null;await kvSet('ofisOnbellek',null);temaUygula()}
 async function girisSonrasi(){BULUT.hata='';
   {const uid=BULUT.oturum.user.id,onceki=await kvGet('sahipId');const gercek=(await all('ilanlar')).filter(i=>!i.ornek).length+(await all('musteriler')).length;
     if(onceki&&onceki!==uid){if(!confirm('Bu cihazda başka bir hesaba ait veriler var. Devam ederseniz bu cihazdaki veriler silinecek ve sizin hesabınızın verileri yüklenecek. (Diğer hesabın buluttaki verileri etkilenmez.)\n\nDevam edilsin mi?')){await oturumKapat();throw new Error('Giriş iptal edildi.')}await cihazVerisiniSil()}
@@ -1759,12 +1762,13 @@ async function esitle(){
     await gonder();
     await eksikDosyalariIndir();
     await yayinlariGuncelle();
+    try{await ofisYukle();await ofisYayinlariGuncelle()}catch(e){console.warn('ofis',e)}
     if(await copTemizle())degisti=true;
     BULUT.hata='';await kvSet('sonEsitleme',Date.now());
   }catch(e){console.error(e);BULUT.hata=String(e.message||e)}
   finally{BULUT.calisiyor=false;
     if(degisti){await ilanlariYukle();S.musteriler=await all('musteriler');S.randevular=await all('randevular');const h=location.hash;if(!/#\/(ekle|duzenle)/.test(h)&&!document.querySelector('.sheet-bg'))ciz()}
-    syncCiz();const ap=$('#bulutDurum');if(ap)bulutPanelCiz();if(BULUT.tekrar)setTimeout(()=>esitle(),500)}
+    syncCiz();const ap=$('#bulutDurum');if(ap)bulutPanelCiz();if($('#ofisPanel')&&!$('#ofisPanel input:focus'))ofisPanelCiz();if(BULUT.tekrar)setTimeout(()=>esitle(),500)}
 }
 async function cek(){let son=await kvGet('sonCekim');let degisti=false;const uyarilar=[];
   let alt=son?new Date(new Date(son).getTime()-15000).toISOString():null;
@@ -1832,7 +1836,7 @@ function bulutPanelCiz(){const el=$('#bulutDurum');if(!el)return;const o=BULUT.o
     <div class="actions" style="margin-top:10px"><button class="btn pri" id="bGiris">Giriş yap</button><button class="btn" id="bHesap">Hesap oluştur</button><button class="btn ghost" id="bUnut">Şifremi unuttum</button></div>
     <p class="small muted">İlk cihazda bir kez "Hesap oluştur", diğer cihazlarda aynı bilgilerle "Giriş yap" deyin.</p><p class="small" id="bMesaj" style="color:var(--danger)"></p>`;
     const calis=async(fn,b)=>{const e=$('#bE').value.trim(),s_=$('#bS').value;if(!e||!s_){$('#bMesaj').textContent='E-posta ve şifreyi yazın.';return}b.disabled=true;$('#bMesaj').textContent='';
-      try{await fn(e,s_);toast('Bulut açıldı, eşitleniyor…');bulutPanelCiz()}catch(x){$('#bMesaj').textContent=x.message}finally{b.disabled=false}};
+      try{await fn(e,s_);toast('Bulut açıldı, eşitleniyor…');bulutPanelCiz();ofisPanelCiz()}catch(x){$('#bMesaj').textContent=x.message}finally{b.disabled=false}};
     $('#bUnut').onclick=async()=>{const e=$('#bE').value.trim();if(!e){$('#bMesaj').textContent='Önce e-posta adresinizi yazın.';return}
       try{const r=await fetch(SB_URL+'/auth/v1/recover?redirect_to='+encodeURIComponent(location.origin+location.pathname),{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({email:e})});
         if(!r.ok)throw new Error(authHata(await r.json().catch(()=>({}))));$('#bMesaj').style.color='var(--brand-deep)';$('#bMesaj').textContent='Şifre yenileme bağlantısı e-postanıza gönderildi. Bağlantıyı bu cihazda açın.'}
@@ -2203,6 +2207,185 @@ function raporSayfa(){
        <div class="small">${gun(s.tarih)} · ${esc(s.tur)} · ${para(s.bedel)}${s.tur==='Kiralama'?' / ay':''} · ${esc(s.karsiAd||'')} · Komisyon <b>${para(toplamKomisyon(s))}</b></div></div>`).join(''):'<p class="muted small" style="margin:0">Bu yıl kayıtlı satış veya kiralama yok. Bir ilanı "Satıldı" veya "Kiralandı" yaptığınızda bilgileri girebilirsiniz.</p>'}</div>`;
   $('#app').innerHTML=iskelet('raporlar',html);$('#rYil').onchange=e=>{S.raporYil=+e.target.value;raporSayfa()}}
 
+
+/* ========== OFİS MODU (1. adım: ofis, üyeler, paylaşım, ofis ilanları) ========== */
+const OFIS_KOVA='ofis';
+S.ofis=null;S.ofisResim={};
+const benimId=()=>BULUT.oturum&&BULUT.oturum.user.id;
+async function sbJson(yol,ops,ne){const r=await sbTamam(await sb(yol,ops),ne||'Sunucu hatası');const t=await r.text();return t?JSON.parse(t):null}
+async function sbRpc(ad,govde){const r=await sb('/rest/v1/rpc/'+ad,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(govde)});
+  const t=await r.text();let j=null;try{j=t?JSON.parse(t):null}catch(e){}
+  if(!r.ok)throw new Error((j&&(j.message||j.hint))||('İşlem yapılamadı ('+r.status+')'));return j}
+const uyeBul=id=>((S.ofis&&S.ofis.uyeler)||[]).find(u=>u.user_id===id);
+const benYoneticiyim=()=>{const u=uyeBul(benimId());return !!(u&&u.rol==='yonetici')};
+async function ofisYukle(){
+  if(!BULUT.oturum||!navigator.onLine)return;
+  const uid=benimId();
+  const ben=await sbJson(`/rest/v1/ofis_uyeler?select=*&user_id=eq.${uid}`,{},'Ofis bilgisi alınamadı');
+  if(!ben||!ben.length){if(S.ofis){S.ofis=null;await kvSet('ofisOnbellek',null)}return}
+  const oid=ben[0].ofis_id;
+  const [of,uy,il,tl]=await Promise.all([sbJson(`/rest/v1/ofisler?select=*&id=eq.${oid}`),sbJson(`/rest/v1/ofis_uyeler?select=*&ofis_id=eq.${oid}&order=katildi.asc`),
+    sbJson(`/rest/v1/ofis_ilanlar?select=ofis_id,ilan_id,owner,seviye,duzenleme,eslesme_izni,veri,guncel,guncelleyen&ofis_id=eq.${oid}`),sbJson(`/rest/v1/ofis_talepler?select=*&ofis_id=eq.${oid}`)]);
+  S.ofis={ofis:of[0],uyeler:uy||[],ilanlar:(il||[]),talepler:(tl||[]),zaman:Date.now()};
+  await kvSet('ofisOnbellek',S.ofis);
+  // kendi üye kaydımdaki ad/telefon güncel mi
+  const f=S.ayarlar.firma,ad=f.yetkili||BULUT.oturum.user.email,tel=f.tel||'';
+  if(ben[0].ad!==ad||(ben[0].tel||'')!==tel)await sb(`/rest/v1/ofis_uyeler?ofis_id=eq.${oid}&user_id=eq.${uid}`,{method:'PATCH',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({ad,tel})}).catch(()=>{});
+}
+function ofisOzet(i){const t=turBul(i.turId)||{};const o=i.ozellikler||{};
+  return {no:i.no,baslik:i.baslik,islem:i.islem,turId:i.turId,turAd:t.ad||'',ana:t.ana||'',il:i.il,ilce:i.ilce,mahalle:i.mahalle,fiyat:i.fiyat,paraBirimi:i.paraBirimi,fiyatYazi:fiyatYazi(i),durum:i.durum,
+    ozellikler:{oda:o.oda||null,m2Brut:o.m2Brut||null,m2Net:o.m2Net||null,m2:o.m2||null}}}
+async function ofisYayinlariGuncelle(){
+  if(!S.ofis||!S.ofis.ofis||!BULUT.oturum)return;const oid=S.ofis.ofis.id,uid=benimId();
+  for(const s0 of [...S.ilanlar,...(S.cop||[])]){
+    const i=await tx('ilanlar','readonly',s=>s.get(s0.id));if(!i)continue;
+    const p=i.ofisPaylasim||{};const y=i.ofisYayin;
+    const hedef=(i.silindi||i.ornek)?null:(p.seviye==='kismi'||p.seviye==='tam')?p.seviye:(p.eslesme?'ozet':null);
+    try{
+      if(!hedef){if(y&&y.ofis===oid){await sb(`/rest/v1/ofis_ilanlar?ofis_id=eq.${oid}&ilan_id=eq.${encodeURIComponent(i.id)}`,{method:'DELETE'});
+          const yol=[...Array(y.fotoSayi||0)].map((_,k)=>`${oid}/${i.id}/${k}.jpg`).concat((y.belgeler||[]).map(b=>b.yol));
+          if(yol.length)await sb(`/storage/v1/object/${OFIS_KOVA}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefixes:yol})}).catch(()=>{});
+          i.ofisYayin=null;await putRaw('ilanlar',i)}continue}
+      const anahtar=[i._g,hedef,!!p.duzenleme,!!p.eslesme,oid,S.ayarlar.filigran||''].join('|');
+      if(y&&y.ofis===oid&&y.v===anahtar)continue;
+      const yy={ofis:oid,v:anahtar,imza:(y&&y.ofis===oid&&y.imza)||'',fotoSayi:(y&&y.ofis===oid&&y.fotoSayi)||0,belgeler:(y&&y.ofis===oid&&y.belgeler)||[]};
+      const veri=ofisOzet(i);
+      if(hedef!=='ozet'){
+        const ds=(await dosyalarOf(i.id)).sort((a,b)=>a.sira-b.sira);const fotolar=ds.filter(d=>d.tip==='foto').slice(0,20);
+        const imza=kisaImza(fotolar.map(f=>f.id+':'+f.sira).join(',')+'|'+(S.ayarlar.filigran||''));
+        if(imza!==yy.imza){const logo=await logoResim();
+          for(const [k,f] of fotolar.entries()){const b=await paylasimFotosu(f,logo);await sbTamam(await sb(`/storage/v1/object/${OFIS_KOVA}/${oid}/${i.id}/${k}.jpg`,{method:'POST',headers:{'x-upsert':'true','Content-Type':'image/jpeg'},body:b}),'Ofis fotoğrafı yüklenemedi')}
+          if(yy.fotoSayi>fotolar.length){const fz=[];for(let k=fotolar.length;k<yy.fotoSayi;k++)fz.push(`${oid}/${i.id}/${k}.jpg`);await sb(`/storage/v1/object/${OFIS_KOVA}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefixes:fz})}).catch(()=>{})}
+          yy.imza=imza;yy.fotoSayi=fotolar.length}
+        Object.assign(veri,{aciklama:i.aciklama||'',video:i.video||'',ozellikListesi:kisaOzellikler(i),konum:i.konum||null,fotolar:[...Array(yy.fotoSayi)].map((_,k)=>`${oid}/${i.id}/${k}.jpg`),v:yy.imza,guncel:i.updatedAt||Date.now()});
+        if(hedef==='tam'){veri.sahip=i.sahip||{};const bl=ds.filter(d=>d.tip==='belge');const yeniB=[];
+          for(const b of bl){const uz=((b.ad||'').split('.').pop()||'bin').toLowerCase().replace(/[^a-z0-9]/g,'')||'bin';const yol=`${oid}/${i.id}/b-${b.id}.${uz}`;
+            if(!yy.belgeler.some(x=>x.yol===yol))await sbTamam(await sb(`/storage/v1/object/${OFIS_KOVA}/${yol}`,{method:'POST',headers:{'x-upsert':'true','Content-Type':b.blob.type||'application/octet-stream'},body:b.blob}),'Belge yüklenemedi');
+            yeniB.push({ad:b.ad,yol,mime:b.blob.type})}
+          const eskiB=yy.belgeler.filter(x=>!yeniB.some(n=>n.yol===x.yol)).map(x=>x.yol);if(eskiB.length)await sb(`/storage/v1/object/${OFIS_KOVA}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefixes:eskiB})}).catch(()=>{});
+          yy.belgeler=yeniB;veri.belgeler=yeniB}
+        else if(yy.belgeler.length){await sb(`/storage/v1/object/${OFIS_KOVA}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefixes:yy.belgeler.map(x=>x.yol)})}).catch(()=>{});yy.belgeler=[]}}
+      await sbTamam(await sb('/rest/v1/ofis_ilanlar?on_conflict=ofis_id,ilan_id',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},
+        body:JSON.stringify([{ofis_id:oid,ilan_id:i.id,owner:uid,seviye:hedef,duzenleme:!!p.duzenleme&&hedef!=='ozet',eslesme_izni:!!p.eslesme,veri}])}),'Ofis ilanı kaydedilemedi');
+      i.ofisYayin=yy;await putRaw('ilanlar',i);
+    }catch(e){console.warn('ofis yayını',e)}}
+  await ilanlariYukle();
+}
+async function ofisResimUrl(yol){if(S.ofisResim[yol])return S.ofisResim[yol];const r=await sb(`/storage/v1/object/authenticated/${OFIS_KOVA}/${yol}`);if(!r.ok)throw new Error('resim');const u=URL.createObjectURL(await r.blob());S.ofisResim[yol]=u;return u}
+function ofisPaylasilanlar(){if(!S.ofis)return [];const uid=benimId();return S.ofis.ilanlar.filter(r=>r.seviye!=='ozet'&&r.owner!==uid)}
+
+/* Ayarlar: ofis paneli */
+function ofisPanelCiz(){const el=$('#ofisPanel');if(!el)return;
+  if(!BULUT.oturum){el.innerHTML=`<h2>Ofis</h2><p class="small muted" style="margin:0">Ofis modunu kullanmak için önce aşağıdaki <b>Bulut ve eşitleme</b> bölümünden giriş yapın.</p>`;return}
+  if(!S.ofis){el.innerHTML=`<h2>Ofis</h2><p class="small muted" style="margin-top:-6px">Ekibinizle ilan paylaşmak için bir ofis kurun ya da size verilen davet koduyla bir ofise katılın. Paylaşmadığınız ilanlar, müşterileriniz, notlarınız ve ajandanız her zaman sadece size görünür.</p>
+    <div class="grid c2"><div><label class="f"><span>Yeni ofisin adı</span><input type="text" id="oAd" value="${esc(S.ayarlar.firma.ad||'')}"></label><button class="btn pri" id="oKur" style="margin-top:8px">Ofis kur (yönetici olursunuz)</button></div>
+    <div><label class="f"><span>Davet kodu</span><input type="text" id="oKod" placeholder="Örn. 3FA9C21B" style="text-transform:uppercase"></label><button class="btn" id="oKatil" style="margin-top:8px">Ofise katıl</button></div></div>
+    <p class="small" id="oMsj" style="color:var(--danger)"></p>`;
+    const kim=()=>{const f=S.ayarlar.firma;if(!f.yetkili){$('#oMsj').textContent='Önce yukarıdaki Firma bilgileri bölümünde "Yetkili / danışman adı" alanına adınızı yazıp kaydedin. Ekibiniz sizi bu adla görecek.';return null}return {p_uye_ad:f.yetkili,p_tel:f.tel||''}};
+    $('#oKur').onclick=async()=>{const k=kim();if(!k)return;const ad=$('#oAd').value.trim();if(!ad){$('#oMsj').textContent='Ofis adını yazın.';return}
+      try{await sbRpc('ofis_kur',{p_ad:ad,...k});await ofisYukle();toast('Ofis kuruldu');ofisPanelCiz()}catch(e){$('#oMsj').textContent=e.message}};
+    $('#oKatil').onclick=async()=>{const k=kim();if(!k)return;const kod=$('#oKod').value.trim();if(!kod){$('#oMsj').textContent='Davet kodunu yazın.';return}
+      try{await sbRpc('ofise_katil',{p_kod:kod,...k});await ofisYukle();toast('Ofise katıldınız');ofisPanelCiz()}catch(e){$('#oMsj').textContent=e.message}};
+    return}
+  const o=S.ofis.ofis,yon=benYoneticiyim(),uid=benimId();
+  el.innerHTML=`<h2>Ofis: ${esc(o.ad)}</h2><p class="small muted" style="margin-top:-6px">Rolünüz: <b>${yon?'Yönetici':'Üye'}</b> · ${S.ofis.uyeler.length} kişi</p>
+    ${yon?`<div class="linkbox" style="margin-bottom:12px"><b>Davet kodu: <span style="font-size:20px;letter-spacing:2px">${esc(o.davet_kodu)}</span></b><p class="small muted" style="margin:4px 0 8px">Ekibe katılacak kişi bu kodu Ayarlar > Ofis bölümüne yazar.</p>
+      <div class="actions"><button class="btn" id="oKop">Kodu kopyala</button><button class="btn ghost" id="oYenile">Yeni kod oluştur</button></div></div>`:''}
+    <ul class="listed">${S.ofis.uyeler.map(u=>`<li><span class="grow"><b>${esc(u.ad||u.email)}</b>${u.user_id===uid?' (siz)':''} · <span class="small muted">${u.rol==='yonetici'?'Yönetici':'Üye'}</span>${u.tel?` · <a href="tel:${esc(u.tel)}">${esc(u.tel)}</a>`:''}
+      <br><span class="small muted">${esc(u.email||'')} · ${S.ofis.ilanlar.filter(r=>r.owner===u.user_id&&r.seviye!=='ozet').length} paylaşılan ilan</span></span>
+      ${yon&&u.user_id!==uid?`<button class="btn ghost" data-orol="${u.user_id}" data-yeni="${u.rol==='yonetici'?'uye':'yonetici'}">${u.rol==='yonetici'?'Üye yap':'Yönetici yap'}</button><button class="btn ghost danger" data-ocik="${u.user_id}">Çıkar</button>`:''}</li>`).join('')}</ul>
+    <button class="btn danger" id="oAyril">Ofisten ayrıl</button>
+    <p class="small muted">İlanlarınızı ofisle paylaşmak için ilanın sayfasındaki <b>Ofis paylaşımı</b> bölümünü kullanın.</p>`;
+  const k=$('#oKop');if(k)k.onclick=async()=>{try{await navigator.clipboard.writeText(o.davet_kodu)}catch(e){}toast('Davet kodu kopyalandı')};
+  const yk=$('#oYenile');if(yk)yk.onclick=async()=>{if(!confirm('Yeni kod oluşturulsun mu? Eski kod artık çalışmaz, mevcut üyeler etkilenmez.'))return;try{await sbRpc('davet_kodu_yenile',{o:o.id});await ofisYukle();ofisPanelCiz()}catch(e){toast(e.message)}};
+  $$('[data-orol]').forEach(b=>b.onclick=async()=>{try{await sbTamam(await sb(`/rest/v1/ofis_uyeler?ofis_id=eq.${o.id}&user_id=eq.${b.dataset.orol}`,{method:'PATCH',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({rol:b.dataset.yeni})}),'Rol değiştirilemedi');await ofisYukle();ofisPanelCiz()}catch(e){toast(e.message)}});
+  $$('[data-ocik]').forEach(b=>b.onclick=async()=>{const u=uyeBul(b.dataset.ocik);if(!confirm(`${u.ad||u.email} ofisten çıkarılsın mı? Paylaştığı ilanlar ofisten kalkar, kendi hesabındaki verileri etkilenmez.`))return;
+    try{await sb(`/rest/v1/ofis_ilanlar?ofis_id=eq.${o.id}&owner=eq.${u.user_id}`,{method:'DELETE'});await sb(`/rest/v1/ofis_talepler?ofis_id=eq.${o.id}&owner=eq.${u.user_id}`,{method:'DELETE'}).catch(()=>{});
+      await sbTamam(await sb(`/rest/v1/ofis_uyeler?ofis_id=eq.${o.id}&user_id=eq.${u.user_id}`,{method:'DELETE'}),'Üye çıkarılamadı');await ofisYukle();toast('Üye çıkarıldı');ofisPanelCiz()}catch(e){toast(e.message)}});
+  $('#oAyril').onclick=async()=>{const baskaYon=S.ofis.uyeler.some(u=>u.user_id!==uid&&u.rol==='yonetici');const baskaVar=S.ofis.uyeler.length>1;
+    if(yon&&baskaVar&&!baskaYon){alert('Ofisten ayrılmadan önce başka bir üyeyi yönetici yapın.');return}
+    if(!confirm('Ofisten ayrılmak istiyor musunuz? Paylaştığınız ilanlar ofisten kalkar. Kendi ilanlarınız, müşterileriniz ve ajandanız sizde kalır.'))return;
+    try{await sb(`/rest/v1/ofis_ilanlar?ofis_id=eq.${o.id}&owner=eq.${uid}`,{method:'DELETE'});await sb(`/rest/v1/ofis_talepler?ofis_id=eq.${o.id}&owner=eq.${uid}`,{method:'DELETE'}).catch(()=>{});
+      await sbTamam(await sb(`/rest/v1/ofis_uyeler?ofis_id=eq.${o.id}&user_id=eq.${uid}`,{method:'DELETE'}),'Ayrılınamadı');
+      if(!baskaVar)await sb(`/rest/v1/ofisler?id=eq.${o.id}`,{method:'DELETE'}).catch(()=>{});
+      for(const i of await all('ilanlar'))if(i.ofisYayin){i.ofisYayin=null;await putRaw('ilanlar',i)}
+      S.ofis=null;await kvSet('ofisOnbellek',null);await ilanlariYukle();toast('Ofisten ayrıldınız');ofisPanelCiz()}catch(e){toast(e.message)}};
+}
+
+/* İlan sayfası: ofis paylaşımı paneli */
+function ofisPaylasimHtml(i){if(!S.ofis||i.ornek)return '';const p=i.ofisPaylasim||{seviye:'yok'};const y=i.ofisYayin;
+  return `<div class="panel"><h2>Ofis paylaşımı · ${esc(S.ofis.ofis.ad)}</h2>
+    <label class="f"><span>Kimler görsün</span><select id="opSev">
+      <option value="yok" ${!p.seviye||p.seviye==='yok'?'selected':''}>Paylaşma, sadece ben göreyim</option>
+      <option value="kismi" ${p.seviye==='kismi'?'selected':''}>Kısmi: ekip ilanı görür, mal sahibi bilgileri ve belgeler gizli</option>
+      <option value="tam" ${p.seviye==='tam'?'selected':''}>Tam: mal sahibi bilgileri ve belgeler de görünür</option></select></label>
+    <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px"><input type="checkbox" id="opDuz" ${p.duzenleme?'checked':''} ${!p.seviye||p.seviye==='yok'?'disabled':''}> <span>Ekip bu ilanı düzenleyebilsin <span class="small muted">(yakında: düzenleme geçmişi ve geri alma)</span></span></label>
+    <label style="display:flex;gap:8px;align-items:flex-start;margin-top:8px"><input type="checkbox" id="opEsl" ${p.eslesme?'checked':''}> <span>Ekibin müşteri talepleriyle eşleşince onlara bildirilsin <span class="small muted">(izin vermezseniz uygun talepler sadece size bildirilir)</span></span></label>
+    <p class="small muted" style="margin:8px 0 0">${y&&y.ofis===S.ofis.ofis.id?'Ofiste yayında. Değişiklikleriniz eşitlemede ekibe gider.':(p.seviye&&p.seviye!=='yok')||p.eslesme?'Bir sonraki eşitlemede ofise gönderilecek.':'Bu ilan ofiste görünmüyor.'}</p></div>`}
+function ofisPaylasimBagla(i){const s=$('#opSev');if(!s)return;
+  const kaydet=async()=>{const sev=$('#opSev').value;i.ofisPaylasim={seviye:sev,duzenleme:sev!=='yok'&&$('#opDuz').checked,eslesme:$('#opEsl').checked};
+    (i.gecmis=i.gecmis||[]).push({t:Date.now(),m:`Ofis paylaşımı: ${({yok:'paylaşılmıyor',kismi:'kısmi',tam:'tam'})[sev]}${i.ofisPaylasim.duzenleme?', düzenleme izni':''}${i.ofisPaylasim.eslesme?', eşleşme izni':''}`});
+    await put('ilanlar',i);toast('Ofis paylaşımı kaydedildi');ciz()};
+  $('#opSev').onchange=kaydet;$('#opDuz').onchange=kaydet;$('#opEsl').onchange=kaydet}
+
+/* Ofis ilanları listesi ve detayı */
+async function ofisListe(){
+  const uid=benimId();const F=S.oFiltre=S.oFiltre||{kim:'',q:''};
+  let L=ofisPaylasilanlar();if(F.kim)L=L.filter(r=>r.owner===F.kim);
+  if(F.q){const q=trk(F.q);L=L.filter(r=>trk([r.veri.baslik,r.veri.mahalle,r.veri.ilce,r.veri.il,r.veri.no,r.veri.turAd,(uyeBul(r.owner)||{}).ad].join(' ')).includes(q))}
+  L=L.filter(r=>!['Satıldı','Kiralandı'].includes(r.veri.durum)||F.hepsi).sort((a,b)=>(b.veri.guncel||0)-(a.veri.guncel||0));
+  const sahipler=[...new Set(ofisPaylasilanlar().map(r=>r.owner))];
+  const html=`<h1>Ofis portföyü</h1>
+   ${!S.ofis?`<div class="empty"><b>Bir ofise bağlı değilsiniz.</b><p>Ayarlar > Ofis bölümünden ofis kurabilir ya da davet koduyla katılabilirsiniz.</p><a class="btn" href="#/ayarlar">Ayarlar</a></div>`:`
+   <div class="toolbar"><a class="btn ghost" href="#/ilanlar">${IC.left} Kendi ilanlarım</a><select id="oKim" style="width:auto"><option value="">Tüm ekip</option>${sahipler.map(u=>`<option value="${u}" ${F.kim===u?'selected':''}>${esc((uyeBul(u)||{}).ad||'Üye')}</option>`).join('')}</select>
+    <input type="search" class="grow" id="oq" placeholder="Ara: başlık, mahalle, danışman…" value="${esc(F.q)}"></div>
+   <p class="small muted">${esc(S.ofis.ofis.ad)} · ekibin paylaştığı ${L.length} ilan${S.ofis.zaman?' · güncelleme '+tarih(S.ofis.zaman):''}</p>
+   ${L.length?`<div class="cards">${L.map(r=>{const v=r.veri,u=uyeBul(r.owner)||{};return `<a class="card" href="#/ofis-ilan/${encodeURIComponent(r.ilan_id)}">
+     <div class="ph" data-oresim="${esc((v.fotolar||[])[0]||'')}">${IC.home}</div>
+     <div class="badges"><span class="badge b-islem">${esc(v.islem)}</span>${r.seviye==='tam'?'<span class="badge" style="background:var(--blue)">Tam</span>':''}${v.durum&&v.durum!=='Aktif'?`<span class="badge st-${esc(v.durum)}">${esc(v.durum)}</span>`:''}</div>
+     <div class="body"><div class="pf ekip"><i></i>${esc(u.ad||'Ekip')}</div><div class="price">${esc(v.fiyatYazi||'')}</div><div class="ttl">${esc(v.baslik||'')}</div>
+     <div class="specs"><span>${esc(v.turAd||'')}</span>${(v.ozellikListesi||[]).filter(x=>/^(m²|m² \(Brüt\)|Oda Sayısı)$/.test(x[0])).map(x=>`<span>${esc(x[1])}${/m²/.test(x[0])?' m²':''}</span>`).join('')}</div>
+     <div class="small muted" style="margin-top:6px">${esc([v.mahalle,v.ilce,v.il].filter(Boolean).join(', '))}</div></div></a>`}).join('')}</div>`
+    :`<div class="empty"><b>Ekibin paylaştığı ilan yok.</b><p>Ekip arkadaşlarınız ilanlarını paylaştıkça burada görünecek.</p></div>`}`}`;
+  $('#app').innerHTML=iskelet('ilanlar',html);
+  const k=$('#oKim');if(k)k.onchange=e=>{F.kim=e.target.value;ofisListe()};
+  let qt;const q=$('#oq');if(q)q.oninput=e=>{clearTimeout(qt);qt=setTimeout(()=>{F.q=e.target.value;const pos=e.target.selectionStart;ofisListe().then(()=>{const x=$('#oq');x.focus();x.setSelectionRange(pos,pos)})},250)};
+  for(const d of $$('[data-oresim]')){const yol=d.dataset.oresim;if(!yol)continue;ofisResimUrl(yol).then(u=>{d.style.backgroundImage=`url('${u}')`;d.innerHTML=''}).catch(()=>{})}
+}
+function ofisIlanMetni(v,sahipAd){const f=S.ayarlar.firma;const L_=[`🏡 *${v.islem} ${v.turAd}* | ${v.fiyatYazi}`,`*${v.baslik||''}*`,`📍 ${[v.mahalle&&v.mahalle+' Mah.',v.ilce,v.il].filter(Boolean).join(', ')}`,''];
+  (v.ozellikListesi||[]).slice(0,14).forEach(([a,b])=>L_.push(`• ${a}: ${b}`));if(v.aciklama)L_.push('',String(v.aciklama).trim().slice(0,700));
+  L_.push('',`*${f.ad||''}*${f.yetkili?' · '+f.yetkili:''}`);if(f.tel)L_.push(`📞 ${f.tel}`);if(f.yetkiNo)L_.push(`Yetki Belge No: ${f.yetkiNo}`);return L_.join('\n')}
+async function ofisIlanDetay(id){
+  const r=(S.ofis?S.ofis.ilanlar:[]).find(x=>x.ilan_id===id&&x.seviye!=='ozet');if(!r){location.hash='#/ofis';return}
+  const v=r.veri,u=uyeBul(r.owner)||{},F=v.fotolar||[];
+  const html=`<div class="toolbar"><a class="btn ghost" href="#/ofis">${IC.left} Ofis portföyü</a></div>
+   <div class="dgrid"><div>
+    ${F.length?`<div class="gallery" id="gal"><img id="galImg" alt="">${F.length>1?`<button class="nav l" id="gl" aria-label="Önceki">${IC.left}</button><button class="nav r" id="gr" aria-label="Sonraki">${IC.right}</button>`:''}<span class="cnt" id="gc">1 / ${F.length}</span></div>`:''}
+    <div class="panel" style="margin-top:12px"><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px"><span class="badge b-islem">${esc(v.islem)}</span><span class="badge" style="background:var(--blue)">${r.seviye==='tam'?'Tam paylaşım':'Kısmi paylaşım'}</span>${v.durum&&v.durum!=='Aktif'?`<span class="badge st-${esc(v.durum)}">${esc(v.durum)}</span>`:''}</div>
+     <div class="price" style="font-size:30px">${esc(v.fiyatYazi)}</div><h1 style="margin:4px 0 6px">${esc(v.baslik||'')}</h1><div class="muted">${esc([v.mahalle&&v.mahalle+' Mah.',v.ilce,v.il].filter(Boolean).join(', '))}</div></div>
+    <div class="panel"><h2>Paylaş</h2><div class="share"><button class="btn wa" id="oWa">${IC.wa} WhatsApp'ta gönder</button><button class="btn" id="oMetin">${IC.copy} Metni kopyala</button></div>
+     <p class="sharenote">Mesajda sizin firma ve iletişim bilgileriniz yer alır.</p></div>
+    ${v.aciklama?`<div class="panel"><h2>Açıklama</h2><div style="white-space:pre-wrap">${esc(v.aciklama)}</div></div>`:''}
+    ${v.konum?`<div class="panel"><h2>Konum</h2><div class="minimap" id="mm"></div></div>`:''}
+   </div><div>
+    <div class="panel"><h2>Portföy sahibi</h2><div class="agent" style="display:flex;gap:12px;align-items:center"><b>${esc(u.ad||'Ekip üyesi')}</b></div>
+     <div class="actions" style="margin-top:10px">${u.tel?`<a class="btn" href="tel:${esc(u.tel.replace(/\s/g,''))}">${IC.phone} Ara</a><a class="btn" href="https://wa.me/${waNo(u.tel)}?text=${encodeURIComponent('Merhaba, '+(v.no||'')+' numaralı "'+(v.baslik||'')+'" ilanın hakkında konuşabilir miyiz?')}" target="_blank" rel="noopener">${IC.wa} Yaz</a>`:'<span class="small muted">Telefon bilgisi yok.</span>'}</div></div>
+    <div class="panel"><h2>İlan bilgileri</h2><table class="kv"><tr><td>İlan No</td><td>${esc(v.no||'')}</td></tr><tr><td>Emlak Tipi</td><td>${esc(v.islem+' '+v.turAd)}</td></tr>${(v.ozellikListesi||[]).map(([a,b])=>`<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join('')}</table></div>
+    ${r.seviye==='tam'?`<div class="panel private"><div class="private-tag">${IC.lock} Tam paylaşım: sadece ofis içi</div><h2>Mal sahibi</h2>
+      ${v.sahip&&(v.sahip.ad||v.sahip.tel)?`<table class="kv">${[['Ad Soyad',esc(v.sahip.ad||'')],['Telefon',v.sahip.tel?`<a href="tel:${esc(v.sahip.tel)}">${esc(v.sahip.tel)}</a>`:''],['Yetki Bitişi',v.sahip.yetkiBitis?gun(v.sahip.yetkiBitis):'']].filter(x=>x[1]).map(([a,b])=>`<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</table>`:'<p class="small muted">Bilgi girilmemiş.</p>'}
+      ${v.sahip&&v.sahip.not?`<p style="white-space:pre-wrap">${esc(v.sahip.not)}</p>`:''}
+      <h2 style="margin-top:12px">Belgeler</h2>${(v.belgeler||[]).length?`<ul class="docs">${v.belgeler.map((b,k)=>`<li><a href="#" data-obelge="${k}">${esc(b.ad)}</a></li>`).join('')}</ul>`:'<p class="small muted">Belge yok.</p>'}</div>`:''}
+   </div></div>`;
+  $('#app').innerHTML=iskelet('ilanlar',html);
+  if(F.length){let k=0;const git=async n=>{k=(n+F.length)%F.length;$('#gc').textContent=(k+1)+' / '+F.length;try{$('#galImg').src=await ofisResimUrl(F[k])}catch(e){}};git(0);
+    if($('#gl')){$('#gl').onclick=()=>git(k-1);$('#gr').onclick=()=>git(k+1)}
+    let sx=null;const g=$('#gal');g.addEventListener('touchstart',e=>sx=e.touches[0].clientX,{passive:true});g.addEventListener('touchend',e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>40)git(k+(dx<0?1:-1));sx=null})}
+  if(v.konum)miniHarita($('#mm'),v.konum,{durum:v.durum||'Aktif'});
+  $('#oWa').onclick=()=>window.open('https://wa.me/?text='+encodeURIComponent(ofisIlanMetni(v)),'_blank');
+  $('#oMetin').onclick=async()=>{try{await navigator.clipboard.writeText(ofisIlanMetni(v))}catch(e){}toast('Metin kopyalandı')};
+  $$('[data-obelge]').forEach(a=>a.onclick=async e=>{e.preventDefault();const b=v.belgeler[+a.dataset.obelge];try{const rr=await sb(`/storage/v1/object/authenticated/${OFIS_KOVA}/${b.yol}`);if(!rr.ok)throw 0;indir(new File([await rr.blob()],b.ad,{type:b.mime||'application/octet-stream'}),b.ad)}catch(x){toast('Belge indirilemedi')}});
+}
+
 /* ========== ilan linki (herkese açık ilan sayfası) ========== */
 const YAYIN_KOVA='yayin';
 function linkAdresi(tok){let base='https://surextr.github.io/portfoydefteri/ilan.html';if(/^https?:$/.test(location.protocol))base=new URL('ilan.html',location.href).href;return base+'?k='+tok}
@@ -2477,6 +2660,7 @@ function ayarlarSayfa(){
     </div><button class="btn pri" id="turEkle" style="margin-top:10px">Türü ekle</button>
     <p class="small muted">Özel türlerin sahibinden'de birebir karşılığı yoktur; aktarırken en yakın türü seçmeniz gerekir.</p></details>
   </div>
+  <div class="panel" id="ofisPanel"></div>
   <div class="panel"><h2>Bulut ve eşitleme</h2><div id="bulutDurum"></div></div>
   <div class="panel"><h2>Sahibinden'den telefonla aktarma</h2>
    <p class="small muted" style="margin-top:-6px">Telefonda sahibinden ilanını açıklaması ve konumuyla birlikte kopyalamak için bir kerelik kurulum.</p>
@@ -2520,7 +2704,7 @@ function ayarlarSayfa(){
   $('#turEkle').onclick=async()=>{const ad=$('#yTur').value.trim();if(!ad){toast('Tür adını yazın');return}
     if(a.turler.some(t=>t.ad.toLocaleLowerCase('tr')===ad.toLocaleLowerCase('tr')&&t.ana===$('#yAna').value)){toast('Bu tür zaten var');return}
     a.turler.push({id:'o'+uid().slice(0,8),ana:$('#yAna').value,ad,aktif:true,ozel:true,ekAlanlar:$('#yEk').value.split(',').map(x=>x.trim()).filter(Boolean)});await ayarKaydet();toast(`"${ad}" eklendi`);ciz()};
-  bulutPanelCiz();
+  bulutPanelCiz();ofisPanelCiz();
   $('#hKaydet').onclick=async()=>{const n=id=>Math.max(0,parseInt($('#'+id).value)||0);a.hatirlatma={yetki:n('hY'),kira:n('hK'),hareketsiz:n('hH')};await ayarKaydet();toast('Hatırlatma ayarları kaydedildi')};
   $$('[data-kkop]').forEach(b=>b.onclick=async()=>{const t=b.dataset.kkop==='ios'?KISAYOL_IOS:KISAYOL_ANDROID;
     try{await navigator.clipboard.writeText(t)}catch(e){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove()}toast('Kopyalandı')});
@@ -2657,7 +2841,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.09.27-2058';
+const SURUM='2026.09.27-2122';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
