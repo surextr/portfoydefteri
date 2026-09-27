@@ -871,6 +871,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--brand);outline:none;b
 .bars .bv{width:100%;background:var(--brand);border-radius:6px 6px 0 0;min-height:2px}
 .bars span{font-size:11px;color:var(--muted);margin-top:4px}.bars em{font-style:normal;font-size:11px;font-weight:700;height:14px}
 .linkbox{margin-top:12px;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--soft)}
+.panel h2 svg,.actions svg,.sheet svg,.toolbar svg{width:18px;height:18px;flex:0 0 auto}
+.sheet .opt svg{width:26px;height:26px}
+.linkbox svg{width:18px;height:18px;flex:0 0 auto}
 .linkbox input{font-size:13px;background:#fff}
 .linkbox .actions{margin-top:8px}.linkbox .btn{min-height:36px;padding:6px 12px}
 .sharenote{font-size:12.5px;color:var(--muted);margin:10px 0 0}
@@ -1265,7 +1268,7 @@ async function detay(id){
   linkKutuBagla(i);satisBagla(i);randevuBagla(()=>ciz());$('#iRandevu').onclick=()=>randevuFormu(null,{ilanId:i.id,tur:'Yer gösterme'},()=>ciz());
   $$('[data-mgon]').forEach(b=>b.onclick=()=>musteriyeGonder(musteriBul(b.dataset.mgon),[i],b.dataset.talep));
   $$('[data-pay]').forEach(b=>b.onclick=async()=>{const bs=$$('[data-pay]');bs.forEach(x=>x.disabled=true);const d=$('#payDurum');
-    try{await paylas(b.dataset.pay,i,fotolar,m=>d.textContent=m)}catch(e){if(e&&e.name!=='AbortError'){toast('Paylaşım yapılamadı');console.error(e)}}
+    try{await paylas(b.dataset.pay,i,fotolar,m=>d.textContent=m)}catch(e){if(e&&e.name!=='AbortError'){toast('Paylaşım yapılamadı: '+(e.name||'')+' '+(e.message||''));console.error(e)}}
     finally{bs.forEach(x=>x.disabled=false)}});
 }
 async function durumDegis(i,yeni){
@@ -2226,12 +2229,17 @@ function linkKutuBagla(i){
 
 /* ========== paylaşım ========== */
 async function paylasGuvenli(veri){
+  const indirYedek=async(hata)=>{const F=veri.files||[];
+    if(!F.length){if(veri.text){try{await navigator.clipboard.writeText(veri.text)}catch(x){}}toast('Paylaşım menüsü açılamadı'+(hata?` (${hata})`:'')+'. Metin panoya kopyalandı.');return}
+    for(const f of F){indir(f,f.name);await new Promise(r=>setTimeout(r,400))}
+    if(veri.text){try{await navigator.clipboard.writeText(veri.text)}catch(x){}}
+    await secim('Dosya indirildi',`Telefonunuz paylaşım menüsünü açmaya izin vermedi${hata?' ('+hata+')':''}. ${F.length>1?F.length+' dosya':'Dosya'} İndirilenler klasörüne kaydedildi.`,[{deger:'wa',ad:'WhatsApp\'ı aç',not:'Sohbette ataş (📎) > Belge'+(F.length>1||F[0].type.startsWith('image/')?' veya Galeri':'')+' ile indirilen dosyayı ekleyin.'+(veri.text?' Mesaj metni panoya kopyalandı.':''),ikon:IC.wa}]).then(v=>{if(v)location.href='https://wa.me/'})};
   try{return await navigator.share(veri)}
-  catch(e){if(!e||e.name!=='NotAllowedError')throw e;
-    const tek=(veri.files||[]).length===1&&veri.files[0].type==='application/pdf';
-    const ok=await secim('Hazır',(veri.files||[]).length?(tek?'PDF broşür hazırlandı.':`${veri.files.length} fotoğraf hazırlandı.`)+' Paylaşım menüsünü açmak için dokunun.':'Paylaşım menüsünü açmak için dokunun.',[{deger:'p',ad:'Paylaş',not:'WhatsApp veya başka bir uygulama seçebilirsiniz.',ikon:IC.wa}]);
-    if(!ok){const x=new Error('vazgecildi');x.name='AbortError';throw x}
-    return await navigator.share(veri)}}
+  catch(e){if(e&&e.name==='AbortError')throw e;
+    if(e&&e.name==='NotAllowedError'){const ok=await secim('Hazır',((veri.files||[]).length?((veri.files.length===1&&veri.files[0].type==='application/pdf')?'PDF broşür hazırlandı.':`${veri.files.length} dosya hazırlandı.`):'')+' Paylaşım menüsünü açmak için dokunun.',[{deger:'p',ad:'Paylaş',not:'WhatsApp veya başka bir uygulama seçebilirsiniz.',ikon:IC.wa}]);
+      if(!ok){const x=new Error('vazgecildi');x.name='AbortError';throw x}
+      try{return await navigator.share(veri)}catch(e2){if(e2&&e2.name==='AbortError')throw e2;return indirYedek(e2&&(e2.name+': '+e2.message))}}
+    return indirYedek(e&&(e.name+': '+e.message))}}
 function secim(baslik,aciklama,secenekler){return new Promise(res=>{const bg=document.createElement('div');bg.className='sheet-bg';
   bg.innerHTML=`<div class="sheet" role="dialog" aria-modal="true"><h2>${esc(baslik)}</h2><p class="muted small">${esc(aciklama)}</p>
     ${secenekler.map((o,k)=>`<button class="opt" data-k="${k}">${o.ikon||''}<div><b>${esc(o.ad)}</b><span>${esc(o.not||'')}</span></div></button>`).join('')}
@@ -2621,7 +2629,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.09.27-1348';
+const SURUM='2026.09.27-1353';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
