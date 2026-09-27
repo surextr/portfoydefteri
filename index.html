@@ -1378,6 +1378,7 @@ async function form(id){
    </div>
    <div class="panel"><h2>Özellikler</h2><div id="ozAlan"></div></div>
    <div class="panel"><h2>Açıklama</h2><textarea id="aciklama" placeholder="Evin öne çıkan özellikleri, çevresi, ulaşım…">${esc(i.aciklama)}</textarea>
+     <button type="button" class="btn ghost small" id="acikTemizle" style="margin-top:6px">Telefon ve iletişim bilgilerini temizle</button>
      <label class="f" style="margin-top:12px"><span>Video linki (YouTube veya Instagram, isteğe bağlı)</span><input type="url" id="video" value="${esc(i.video)}" placeholder="https://youtu.be/…"></label></div>
    <div class="panel"><h2>Fotoğraflar</h2><p class="small muted" style="margin-top:-6px">Kapak yapmak istediğiniz fotoğraftaki ★ düğmesine dokunun. Sırayı değiştirmek için fotoğrafı basılı tutup sürükleyin.</p>
      <div class="photobar" id="fotoBar"></div>
@@ -1451,6 +1452,8 @@ async function form(id){
     if(!t.trim()){toast('Pano boş görünüyor. Önce ilan sayfasının yazısını kopyalayın.');return}
     if(!/İlan No|Listing No|sahibinden/i.test(t)){toast('Panodaki yazı bir sahibinden ilanına benzemiyor. Sayfanın tamamını kopyaladığınızdan emin olun.');return}
     iceUygula(t)};
+  $('#acikTemizle').onclick=()=>{const r=iletisimTemizle($('#aciklama').value);if(!r.n){toast('Açıklamada telefon veya iletişim bilgisi bulunamadı');return}
+    $('#aciklama').value=r.metin;FORM.degisti=true;toast(`${r.n} telefon/iletişim satırı çıkarıldı. Kaydetmeyi unutmayın.`)};
   $('#f').addEventListener('input',()=>FORM.degisti=true);
   $('#f').onsubmit=e=>{e.preventDefault()};
   $('#kaydet').onclick=e=>{e.preventDefault();kaydet(i,mevcut,islemDoldur)};
@@ -1602,7 +1605,7 @@ function iletisimTemizle(metin){
     l=l.replace(tel,()=>{n++;return ''}).replace(/\S+@\S+\.\S+/g,()=>{n++;return ''}).replace(/https?:\/\/\S+|www\.\S+/gi,()=>{n++;return ''});
     const kalan=l.replace(/[\s:;,.\-–—|/()•*]+/g,' ').trim();
     if(l!==once&&(kalan.length<40||/arayın|arayınız|ulaş|iletişim|danışman|numara/.test(trk(kalan))))continue;
-    if(iletisimSatiri.test(trk(l.trim()))&&l.trim().length<60){n++;continue}
+    if((iletisimSatiri.test(trk(l.trim()))&&l.trim().length<60)||(/detaylı bilgi|tıklayınız|tıklayın|diğer ilanlarımız|alternatif ilanlarımız|tüm ilanlarımız|mağazamız|hizmet vermekteyiz|ekibimiz tarafından|ofisimiz/.test(trk(l))&&l.trim().length<110)){n++;continue}
     out.push(l.replace(/[ \t]{2,}/g,' ').trimEnd())}
   return {metin:out.join('\n').replace(/\n{3,}/g,'\n\n').trim(),n}}
 function sahibindenCoz(metin,eski){
@@ -2591,7 +2594,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.09.27-0545';
+const SURUM='2026.09.27-0555';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
