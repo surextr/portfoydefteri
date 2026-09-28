@@ -1167,7 +1167,7 @@ async function liste(mod){
   const ilkIlan=Math.min(...S.ilanlar.map(i=>i.createdAt||Date.now()));const yedekUyari=!BULUT.oturum&&S.ilanlar.length&&(S.ayarlar.sonYedek?Date.now()-S.ayarlar.sonYedek>15*864e5:(Date.now()-ilkIlan>3*864e5||S.ilanlar.length>=5));
   const baslik=mod==='arsiv'?'Arşiv':'İlanlar';const odBek=mod==='arsiv'?[]:S.ilanlar.filter(i=>ofisBekleyenDuzenleme(i));
   const osb=mod==='arsiv'?[]:ofisSahipBildirimleri();
-  const eslKutu=mod==='arsiv'?'':(osb.length?`<div class="panel esl"><h2>Ekibin taleplerine uygun ilanlarınız (${osb.length})</h2><ul class="listed">${osb.slice(0,6).map(x=>`<li><a class="grow" href="#/ilan/${x.i.id}" style="text-decoration:none;color:inherit"><b>${esc((uyeBul(x.tr.owner)||{}).ad||x.tr.veri.danisman||'Ekip')}</b> · <span class="small">${esc(x.tr.veri.ozet||'')}</span><br><span class="small muted">${esc(x.i.baslik)}</span></a>${x.e.tam?'<span class="tag ok">Tam</span>':'<span class="tag yk">Yakın</span>'}</li>`).join('')}</ul></div>`:'')+(odBek.length?`<div class="panel" style="border-color:#EFD9A3;background:#FFFBF1"><h2>Ekip düzenlemeleri</h2><ul class="listed">${odBek.map(i=>`<li><a class="grow" href="#/ilan/${i.id}">${esc(i.baslik)}</a><span class="small muted">${esc((uyeBul(ofisBekleyenDuzenleme(i).guncelleyen)||{}).ad||'')}</span></li>`).join('')}</ul></div>`:'')+(!S.ayarlar.firma.ad?`<div class="panel esl"><h2>Hoş geldiniz!</h2><p class="small" style="margin:0 0 10px">Başlamadan önce firma adınızı, adınızı, telefonunuzu ve logonuzu girin. Bir ofise davet edildiyseniz önce Ayarlar > Bulut bölümünden hesabınızı açın; firma bilgileri ofisten gelir, siz sadece kendi adınızı ve telefonunuzu girersiniz. Bu bilgiler PDF broşürlerde, ilan linklerinde ve müşterilere giden mesajlarda kullanılır.${BULUT.oturum?'':' Telefon ve bilgisayar arasında eşitleme için Ayarlar > Bulut bölümünden giriş yapın.'}</p><a class="btn pri" href="#/ayarlar">Firma bilgilerini gir</a></div>`:'')+bugunKutusuHtml()+eslesmeKutusuHtml();
+  const eslKutu=mod==='arsiv'?'':(osb.length?`<div class="panel esl"><h2>Ekibin taleplerine uygun ilanlarınız (${osb.length})</h2><ul class="listed">${osb.slice(0,6).map(x=>`<li><a class="grow" href="#/ilan/${x.i.id}" style="text-decoration:none;color:inherit"><b>${esc((uyeBul(x.tr.owner)||{}).ad||x.tr.veri.danisman||'Ekip')}</b> · <span class="small">${esc(x.tr.veri.ozet||'')}</span><br><span class="small muted">${esc(x.i.baslik)}</span></a>${x.e.tam?'<span class="tag ok">Tam</span>':'<span class="tag yk">Yakın</span>'}</li>`).join('')}</ul></div>`:'')+(odBek.length?`<div class="panel" style="border-color:#EFD9A3;background:#FFFBF1"><h2>Ekip ilanlarınızı düzenledi</h2><ul class="listed">${odBek.map(i=>`<li><a class="grow" href="#/ilan/${i.id}">${esc(i.baslik)}</a><span class="small muted">${esc(i.ofisOnceki.kim||'')} · ${esc((i.ofisOnceki.fark||[])[0]||'')}</span></li>`).join('')}</ul></div>`:'')+(!S.ayarlar.firma.ad?`<div class="panel esl"><h2>Hoş geldiniz!</h2><p class="small" style="margin:0 0 10px">Başlamadan önce firma adınızı, adınızı, telefonunuzu ve logonuzu girin. Bir ofise davet edildiyseniz önce Ayarlar > Bulut bölümünden hesabınızı açın; firma bilgileri ofisten gelir, siz sadece kendi adınızı ve telefonunuzu girersiniz. Bu bilgiler PDF broşürlerde, ilan linklerinde ve müşterilere giden mesajlarda kullanılır.${BULUT.oturum?'':' Telefon ve bilgisayar arasında eşitleme için Ayarlar > Bulut bölümünden giriş yapın.'}</p><a class="btn pri" href="#/ayarlar">Firma bilgilerini gir</a></div>`:'')+bugunKutusuHtml()+eslesmeKutusuHtml();
   const html=`
   ${yedekUyari?`<div class="banner"><span style="flex:1 1 240px">${S.ayarlar.sonYedek?`Son yedeğiniz ${Math.floor((Date.now()-S.ayarlar.sonYedek)/864e5)} gün önce alındı.`:'Henüz yedek almadınız.'} Veriler sadece bu cihazda duruyor; yedek alarak kayba karşı koruyun.</span><button class="btn" id="hizliYedek">Şimdi yedek al</button></div>`:''}
   ${eslKutu}
@@ -1216,6 +1216,7 @@ async function detay(id){
   const yetkiKalan=sp.yetkiBitis?Math.ceil((new Date(sp.yetkiBitis)-Date.now())/864e5):null;
   const html=`
   <div class="toolbar"><a class="btn ghost" href="#/${ARSIV.includes(i.durum)?'arsiv':'ilanlar'}">${IC.left} Listeye dön</a><span style="flex:1"></span><a class="btn pri" href="#/duzenle/${i.id}">Düzenle</a></div>
+  ${ofisDuzenlemeHtml(i)}
   <div class="dgrid">
    <div>
     ${fotolar.length?`<div class="gallery" id="gal"><img id="galImg" src="${furl[0]}" alt="">${fotolar.length>1?`<button class="nav l" id="gl" aria-label="Önceki">${IC.left}</button><button class="nav r" id="gr" aria-label="Sonraki">${IC.right}</button>`:''}<span class="cnt" id="gc">1 / ${fotolar.length}</span><span class="kapakEt" id="gk">Kapak</span><button class="kapakYap" id="gky" hidden>★ Kapak yap</button></div>
@@ -1259,7 +1260,6 @@ async function detay(id){
       ${belgeler.length?`<ul class="docs">${belgeler.map(b=>`<li><a href="${objUrl(b.blob)}" target="_blank" rel="noopener" download="${esc(b.ad)}">${esc(b.ad)}</a><span class="small muted">${Math.round(b.blob.size/1024)} KB</span></li>`).join('')}</ul>`:'<p class="muted small">Belge eklenmemiş.</p>'}
     </div>
     ${ofisIlanTalepHtml(i)}
-    ${ofisDuzenlemeHtml(i)}
     ${ofisPaylasimHtml(i)}
     ${satisOzetHtml(i)}
     ${(()=>{const R=(S.randevular||[]).filter(r=>r.ilanId===i.id&&(!r.tamam||r.t>Date.now()-30*864e5)).sort((a,b)=>a.t-b.t);return `<div class="panel"><div style="display:flex;align-items:center;gap:8px"><h2 style="margin:0">Randevular</h2><span style="flex:1"></span><button class="btn" id="iRandevu">${IC.plus} Randevu</button></div>${R.length?R.map(randevuSatiri).join(''):'<p class="small muted" style="margin:8px 0 0">Bu ilan için randevu yok.</p>'}</div>`})()}
@@ -1769,7 +1769,7 @@ async function esitle(){
     await gonder();
     await eksikDosyalariIndir();
     await yayinlariGuncelle();
-    try{await ofisYukle();await ofisYayinlariGuncelle();await ofisTalepleriYayinla()}catch(e){console.warn('ofis',e)}
+    try{await ofisYukle();if(await ofisDuzenlemeleriUygula())degisti=true;await ofisYayinlariGuncelle();await ofisTalepleriYayinla()}catch(e){console.warn('ofis',e)}
     if(await copTemizle())degisti=true;
     BULUT.hata='';await kvSet('sonEsitleme',Date.now());
   }catch(e){console.error(e);BULUT.hata=String(e.message||e)}
@@ -2461,28 +2461,42 @@ async function ofisIlanDuzenle(r){
   try{await sbTamam(await sb(`/rest/v1/ofis_ilanlar?ofis_id=eq.${r.ofis_id}&ilan_id=eq.${encodeURIComponent(r.ilan_id)}`,{method:'PATCH',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({veri:yeni})}),'Kaydedilemedi (düzenleme izni kaldırılmış olabilir)');
     await ofisGecmisEkle(r,yeni,fark.join(' · '));await ofisYukle();toast('Değişiklikler kaydedildi');ciz()}
   catch(e){toast(e.message)}}
-function ofisBekleyenDuzenleme(i){if(!S.ofis||!i.ofisYayin)return null;const r=S.ofis.ilanlar.find(x=>x.ilan_id===i.id&&x.owner===benimId());
-  if(!r||!r.guncelleyen||r.guncelleyen===benimId())return null;return r}
-function ofisDuzenlemeHtml(i){const r=ofisBekleyenDuzenleme(i);if(!r)return '';const u=uyeBul(r.guncelleyen)||{};
-  const bizim={baslik:i.baslik,fiyat:i.fiyat,paraBirimi:i.paraBirimi,aciklama:i.aciklama||'',video:i.video||''};const fark=ofisFarklar(bizim,r.veri);
+function ofisBekleyenDuzenleme(i){return i&&i.ofisOnceki?i.ofisOnceki:null}
+// Ekip düzenlemelerini sahibin ilanına otomatik işle (ofisYukle sonrası)
+async function ofisDuzenlemeleriUygula(){if(!S.ofis)return false;const uid=benimId();let deg=false;
+  for(const r of S.ofis.ilanlar){if(r.owner!==uid||!r.guncelleyen||r.guncelleyen===uid)continue;
+    const i=await tx('ilanlar','readonly',s0=>s0.get(r.ilan_id));if(!i||i.silindi)continue;if(i.ofisSonUygulanan===r.guncel)continue;
+    const v=r.veri||{};const bizim={baslik:i.baslik,fiyat:i.fiyat,paraBirimi:i.paraBirimi,aciklama:i.aciklama||'',video:i.video||''};
+    const fark=ofisFarklar(bizim,v);i.ofisSonUygulanan=r.guncel;
+    if(fark.length){const u=uyeBul(r.guncelleyen)||{};
+      if(!i.ofisOnceki)i.ofisOnceki={...bizim,t:Date.now()};i.ofisOnceki.kim=u.ad||'Ekip üyesi';i.ofisOnceki.fark=fark;i.ofisOnceki.zaman=r.guncel;
+      for(const k of ['baslik','fiyat','paraBirimi','aciklama','video'])if(v[k]!==undefined)i[k]=v[k];
+      (i.gecmis=i.gecmis||[]).push({t:Date.now(),m:`${u.ad||'Ekip üyesi'} düzenledi: ${fark.join(' · ')}`})}
+    i.updatedAt=Date.parse(r.guncel)||Date.now();await put('ilanlar',i);deg=true}
+  if(deg)await ilanlariYukle();return deg}
+function ofisDuzenlemeHtml(i){const o=ofisBekleyenDuzenleme(i);if(!o)return '';
   return `<div class="panel" style="border-color:#EFD9A3;background:#FFFBF1"><h2>Ekip düzenlemesi</h2>
-    <p class="small" style="margin:0 0 6px"><b>${esc(u.ad||'Bir ekip üyesi')}</b> bu ilanın ofisteki halini ${tarih(r.guncel)} tarihinde düzenledi.</p>
-    ${fark.length?`<ul class="small" style="margin:0 0 10px;padding-left:18px">${fark.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p class="small muted">Sizin ilanınızla aynı görünüyor.</p>'}
-    <div class="actions"><button class="btn pri" id="odAl">Değişiklikleri ilanıma al</button><button class="btn" id="odDon">Ana ilana dön</button><button class="btn ghost" id="odGec">Düzenleme geçmişi</button></div>
+    <p class="small" style="margin:0 0 6px"><b>${esc(o.kim||'Bir ekip üyesi')}</b> bu ilanı ${o.zaman?tarih(o.zaman):''} tarihinde düzenledi, değişiklikler ilanınıza işlendi:</p>
+    <ul class="small" style="margin:0 0 10px;padding-left:18px">${(o.fark||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
+    <div class="actions"><button class="btn pri" id="odTamam">Tamam</button><button class="btn" id="odDon">Önceki haline dön</button><button class="btn ghost" id="odGec">Düzenleme geçmişi</button></div>
     <div id="odGecmis"></div></div>`}
 async function ofisSurumuAl(i,v,kimden){for(const k of ['baslik','fiyat','paraBirimi','aciklama','video'])if(v[k]!==undefined)i[k]=v[k];
-  i.updatedAt=Date.now();(i.gecmis=i.gecmis||[]).push({t:Date.now(),m:`Ekip düzenlemesi ilana alındı${kimden?' ('+kimden+')':''}`});await put('ilanlar',i);syncPlanla()}
-function ofisDuzenlemeBagla(i){const r=ofisBekleyenDuzenleme(i);if(!r)return;const u=uyeBul(r.guncelleyen)||{};
-  $('#odAl').onclick=async()=>{if(!confirm('Ekibin yaptığı değişiklikler kendi ilanınıza işlensin mi?'))return;await ofisSurumuAl(i,r.veri,u.ad);toast('Değişiklikler ilanınıza alındı');ciz()};
-  $('#odDon').onclick=async()=>{if(!confirm('İlanın ofisteki hali sizin ilanınızın haline döndürülsün mü? Ekibin yaptığı değişiklikler geçmişte kalır.'))return;
-    try{await ofisGecmisEkle(r,{baslik:i.baslik,fiyat:i.fiyat,paraBirimi:i.paraBirimi,aciklama:i.aciklama,video:i.video,fiyatYazi:fiyatYazi(i)},'İlan sahibi ana ilana döndü');
-      i.ofisYayin={...i.ofisYayin,v:'',zorla:true};await putRaw('ilanlar',i);await ofisYayinlariGuncelle();await ofisYukle();toast('Ana ilana dönüldü');ciz()}catch(e){toast(e.message)}};
-  $('#odGec').onclick=async()=>{const el=$('#odGecmis');el.innerHTML='<p class="small muted">Yükleniyor…</p>';
+  i.updatedAt=Date.now();i.ofisOnceki=null;(i.gecmis=i.gecmis||[]).push({t:Date.now(),m:`Geçmişten sürüm alındı${kimden?' ('+kimden+')':''}`});
+  i.ofisYayin={...(i.ofisYayin||{}),v:'',zorla:true};await put('ilanlar',i);syncPlanla()}
+function ofisDuzenlemeBagla(i){const o=ofisBekleyenDuzenleme(i);if(!o)return;
+  $('#odTamam').onclick=async()=>{i.ofisOnceki=null;await put('ilanlar',i);ciz()};
+  $('#odDon').onclick=async()=>{if(!confirm('İlan, ekip düzenlemesinden önceki haline döndürülsün mü? Ofisteki hali de değişir.'))return;
+    const r=S.ofis&&S.ofis.ilanlar.find(x=>x.ilan_id===i.id&&x.owner===benimId());
+    for(const k of ['baslik','fiyat','paraBirimi','aciklama','video'])if(o[k]!==undefined)i[k]=o[k];
+    i.ofisOnceki=null;i.updatedAt=Date.now();(i.gecmis=i.gecmis||[]).push({t:Date.now(),m:'Ekip düzenlemesi geri alındı, önceki haline dönüldü'});
+    i.ofisYayin={...(i.ofisYayin||{}),v:'',zorla:true};await put('ilanlar',i);
+    try{if(r)await ofisGecmisEkle(r,{baslik:i.baslik,fiyat:i.fiyat,paraBirimi:i.paraBirimi,aciklama:i.aciklama,video:i.video,fiyatYazi:fiyatYazi(i)},'İlan sahibi önceki haline döndü');await ofisYayinlariGuncelle();await ofisYukle()}catch(e){}
+    toast('Önceki haline dönüldü');ciz()};
+  $('#odGec').onclick=async()=>{const el=$('#odGecmis');const r=S.ofis&&S.ofis.ilanlar.find(x=>x.ilan_id===i.id&&x.owner===benimId());if(!r){el.innerHTML='';return}el.innerHTML='<p class="small muted">Yükleniyor…</p>';
     try{const L_=await ofisGecmisGetir(r);el.innerHTML=L_.length?`<ul class="hist" style="margin-top:10px">${L_.map((h,k)=>`<li><time>${tarih(h.tarih)} · ${esc(h.ad||'')}</time>${esc(h.not_||'')}
-        <div class="small muted">${esc(h.veri.fiyatYazi||'')} · ${esc((h.veri.baslik||'').slice(0,60))}</div><button class="btn ghost" data-gsur="${k}" style="min-height:32px;padding:4px 10px;margin-top:4px">Bu sürümü ilanıma al</button></li>`).join('')}</ul>`:'<p class="small muted">Geçmiş kaydı yok.</p>';
-      $$('[data-gsur]').forEach(b=>b.onclick=async()=>{const h=L_[+b.dataset.gsur];if(!confirm('Bu sürüm kendi ilanınıza işlensin mi?'))return;await ofisSurumuAl(i,h.veri,h.ad);toast('Sürüm ilanınıza alındı');ciz()})}
+        <div class="small muted">${esc(h.veri.fiyatYazi||'')} · ${esc((h.veri.baslik||'').slice(0,60))}</div><button class="btn ghost" data-gsur="${k}" style="min-height:32px;padding:4px 10px;margin-top:4px">Bu sürüme dön</button></li>`).join('')}</ul>`:'<p class="small muted">Geçmiş kaydı yok.</p>';
+      $$('[data-gsur]').forEach(b=>b.onclick=async()=>{const h=L_[+b.dataset.gsur];if(!confirm('İlan bu sürüme döndürülsün mü?'))return;await ofisSurumuAl(i,h.veri,h.ad);toast('Sürüme dönüldü');ciz()})}
     catch(e){el.innerHTML='<p class="small" style="color:var(--danger)">Geçmiş alınamadı.</p>'}}}
-
 
 /* ========== OFİS MODU 3. adım: ofis içi eşleştirme ========== */
 async function ofisTalepleriYayinla(){
@@ -2984,7 +2998,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.09.28-1338';
+const SURUM='2026.09.28-1939';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
