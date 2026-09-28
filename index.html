@@ -874,6 +874,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--brand);outline:none;b
 .linkbox{margin-top:12px;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--soft)}
 .panel h2 svg,.actions svg,.sheet svg,.toolbar svg{width:18px;height:18px;flex:0 0 auto}
 .sheet .opt svg{width:26px;height:26px}
+.shsat{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:12px 2px;font:inherit;color:inherit;cursor:pointer}
+.shsat:last-child{border-bottom:0}.shsat:disabled{opacity:.5;cursor:default}
+.shsat .shl{flex:0 0 38%;font-size:13px;color:var(--muted);font-weight:600}.shsat .shv{flex:1;min-width:0;overflow-wrap:anywhere}
+.shsat .shi{flex:0 0 auto;width:22px;height:22px;display:grid;place-items:center;color:var(--brand)}.shsat .shi svg{width:18px;height:18px}
+.shsat.kop{background:#F2F8EE}.shsat.kop .shi{font-weight:800}
 .linkbox svg{width:18px;height:18px;flex:0 0 auto}
 .linkbox input{font-size:13px;background:#fff}
 .linkbox .actions{margin-top:8px}.linkbox .btn{min-height:36px;padding:6px 12px}
@@ -1113,6 +1118,7 @@ async function ciz(){
     if(sayfa==='musteriler')return musteriListe();
     if(sayfa==='ajanda')return ajandaSayfa();
     if(sayfa==='notlar')return notlarSayfa();
+    if(sayfa==='sahibinden'&&id)return await sahibindenGonderSayfa(id);
     if(sayfa==='surecler')return sureclerSayfa();
     if(sayfa==='ofis')return await ofisListe();
     if(sayfa==='ofis-ilan'&&id)return await ofisIlanDetay(decodeURIComponent(id));
@@ -1239,6 +1245,7 @@ async function detay(id){
         <button class="btn" data-pay="pdf">${IC.pdf} PDF broşür</button>
         <button class="btn" data-pay="yazdir">${IC.print} Yazdır</button>
         <button class="btn" data-pay="metin">${IC.copy} Metni kopyala</button>
+        <a class="btn" href="#/sahibinden/${i.id}" style="grid-column:1/-1;border-color:#FFD200;background:#FFF8D6;color:#3A3000">Sahibinden'e gönder</a>
         ${fotolar.length?`<button class="btn" data-pay="foto" style="grid-column:1/-1">${IC.img} ${mobil()?'Fotoğrafları kaydet / gönder':'Fotoğrafları indir'} (${fotolar.length})</button>`:''}
       </div>
       <div class="linkbox" id="linkKutu">${linkKutuHtml(i)}</div>
@@ -2682,6 +2689,55 @@ function sureclerSayfa(){
     :`<div class="empty"><b>Devam eden süreç yok.</b><p>Bir ilanda anlaşma sağlandığında ilan sayfasındaki <b>Satış sürecini başlat</b> veya <b>Kiralama sürecini başlat</b> ile tapu ve teslim adımlarını takip edin.</p></div>`}`;
   $('#app').innerHTML=iskelet('ajanda',html)}
 
+
+/* ========== SAHİBİNDEN'E GÖNDER ekranı ========== */
+async function sahibindenGonderSayfa(id){
+  const i=ilanBul(id);if(!i){location.hash='#/ilanlar';return}
+  const t=turBul(i.turId)||{ana:'konut',ad:''};const o=i.ozellikler||{};
+  const anaAd={konut:'Konut',isyeri:'İş Yeri',arazi:'Arsa'}[t.ana]||'';
+  const KOP=S.shKop&&S.shKop.id===i.id?S.shKop:(S.shKop={id:i.id,set:new Set()});
+  const tek=[],coklu=[];
+  for(const f of FIELDS[t.ana]||[]){if(f.kira&&!/Kiralık/.test(i.islem))continue;const v=o[f.k];if(v==null||v===''||(Array.isArray(v)&&!v.length))continue;
+    if(Array.isArray(v))coklu.push([f.l,v]);else tek.push([f.l,f.t==='num'?String(v):String(v)])}
+  for(const [k,v] of Object.entries(i.ekOzellikler||{}))if(v)tek.push([k,String(v)]);
+  const adres=[i.il,i.ilce,i.mahalle].filter(Boolean);
+  const satirlar=[
+    ['Kategori',['Emlak',anaAd,i.islem,t.ad].filter(Boolean).join(' > '),'kat'],
+    ['İlan başlığı',i.baslik||'','bas'],
+    ['Açıklama',i.aciklama||'','acik'],
+    ['Fiyat',i.fiyat!=null?String(i.fiyat):'','fiyat'],
+    ...(i.paraBirimi&&i.paraBirimi!=='TL'?[['Para birimi',i.paraBirimi,'pb']]:[]),
+    ...adres.map((x,k)=>[['İl','İlçe','Mahalle'][k],x,'adr'+k]),
+    ...(i.adres?[['Açık adres',i.adres,'acadr']]:[]),
+    ...tek.map(([l,v])=>[l,v,'oz:'+l]),
+    ...(i.video?[['Video linki',i.video,'video']]:[]),
+    ...(i.konum?[['Konum (enlem, boylam)',`${i.konum.lat.toFixed(6)}, ${i.konum.lng.toFixed(6)}`,'konum']]:[])];
+  const fotolar=(await dosyalarOf(i.id)).filter(d=>d.tip==='foto').sort((a,b)=>a.sira-b.sira);
+  S.shSatir=satirlar;
+  const html=`<div class="toolbar"><a class="btn ghost" href="#/ilan/${i.id}">${IC.left} İlana dön</a><span style="flex:1"></span><a class="btn pri" href="https://www.sahibinden.com/ilan-ver" target="_blank" rel="noopener">sahibinden'de ilan ver</a></div>
+   <h1 style="margin-bottom:4px">Sahibinden'e gönder</h1>
+   <p class="small muted" style="margin-top:0">Satıra dokunun, bilgi kopyalanır; sahibinden'deki ilgili kutuya yapıştırın. Kopyaladığınız satırlar işaretlenir (<span id="shSay">${KOP.set.size}</span>/${satirlar.length}).</p>
+   <div class="panel" style="padding:6px 16px">${satirlar.map(([l,v,k],n)=>`<button type="button" class="shsat ${KOP.set.has(k)?'kop':''}" data-shk="${n}" ${v?'':'disabled'}>
+      <span class="shl">${esc(l)}</span><span class="shv">${v?esc(k==='acik'?v.slice(0,160)+(v.length>160?'…':''):k==='fiyat'?nf.format(+v)+' '+(i.paraBirimi||'TL'):v):'<i class="muted">boş</i>'}</span>
+      ${k==='bas'&&v?`<span class="small ${v.length>65?'':'muted'}" style="${v.length>65?'color:var(--danger)':''}">${v.length} karakter</span>`:''}<span class="shi">${KOP.set.has(k)?'✓':IC.copy}</span></button>`).join('')}</div>
+   ${coklu.length?`<div class="panel"><h2>İşaretlenecek özellikler</h2><p class="small muted" style="margin-top:-6px">Bunlar sahibinden'de kutucuk olarak işaretlenir.</p>
+     ${coklu.map(([l,v])=>`<div style="margin-bottom:10px"><b class="small">${esc(l)}</b><div class="checks" style="margin-top:4px">${v.map(x=>`<label><input type="checkbox">${esc(x)}</label>`).join('')}</div></div>`).join('')}</div>`:''}
+   <div class="panel"><h2>Fotoğraflar (${fotolar.length})</h2>
+     ${fotolar.length?`<p class="small muted" style="margin-top:-6px">Kapak ilk sırada olacak şekilde, logosuz orijinal halleriyle ${mobil()?'galerinize kaydedilir':'indirilir'}. Sahibinden'de fotoğraf eklerken bu sırayla seçin.</p>
+       <button class="btn pri" id="shFoto">${IC.img} Fotoğrafları ${mobil()?'kaydet':'indir'} (filigransız)</button>`:'<p class="small muted" style="margin:0">Bu ilanda fotoğraf yok.</p>'}</div>
+   <div class="panel"><button class="btn" id="shTum">${IC.copy} Bütün bilgileri tek metin olarak kopyala</button><button class="btn ghost" id="shSifir" style="margin-left:6px">İşaretleri temizle</button></div>`;
+  $('#app').innerHTML=iskelet('ilanlar',html);
+  $$('[data-shk]').forEach(b=>b.onclick=async()=>{const [l,v,k]=satirlar[+b.dataset.shk];if(!v)return;
+    try{await navigator.clipboard.writeText(v)}catch(e){const ta=document.createElement('textarea');ta.value=v;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove()}
+    KOP.set.add(k);b.classList.add('kop');b.querySelector('.shi').textContent='✓';$('#shSay').textContent=KOP.set.size;toast(`${l} kopyalandı`)});
+  const tf=$('#shFoto');if(tf)tf.onclick=async()=>{const files=fotolar.map((f,k)=>new File([f.blob],`${i.no||'ilan'}-${String(k+1).padStart(2,'0')}.jpg`,{type:f.blob.type||'image/jpeg'}));
+    try{if(mobil()&&navigator.canShare&&navigator.canShare({files}))await paylasGuvenli({files});else{for(const f of files){indir(f,f.name);await new Promise(r=>setTimeout(r,300))}toast(`${files.length} fotoğraf indirildi`)}
+      (i.gecmis=i.gecmis||[]).push({t:Date.now(),m:'Sahibinden için fotoğraflar indirildi'});await put('ilanlar',i)}catch(e){if(e&&e.name!=='AbortError')toast('Fotoğraflar hazırlanamadı')}};
+  $('#shTum').onclick=async()=>{const metin=satirlar.filter(x=>x[1]).map(([l,v])=>`${l}: ${v}`).join('\n')+(coklu.length?'\n\n'+coklu.map(([l,v])=>`${l}: ${v.join(', ')}`).join('\n'):'');
+    try{await navigator.clipboard.writeText(metin)}catch(e){}toast('Bütün bilgiler kopyalandı')};
+  $('#shSifir').onclick=()=>{KOP.set.clear();sahibindenGonderSayfa(id)};
+}
+
 /* ========== ilan linki (herkese açık ilan sayfası) ========== */
 const YAYIN_KOVA='yayin';
 function linkAdresi(tok){let base='https://surextr.github.io/portfoydefteri/ilan.html';if(/^https?:$/.test(location.protocol))base=new URL('ilan.html',location.href).href;return base+'?k='+tok}
@@ -3147,7 +3203,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.09.28-2023';
+const SURUM='2026.09.28-2033';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
