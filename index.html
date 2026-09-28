@@ -1159,7 +1159,7 @@ function kartOzet(ilan){const t=turBul(ilan.turId);if(!t)return [];const oz=ilan
 function ilanKart(i,kapak){const t=turBul(i.turId);
   return `<a class="card" href="#/ilan/${i.id}">
     <div class="ph" style="${kapak?`background-image:url('${objUrl(kapak.thumb||kapak.blob)}')`:''}">${kapak?'':IC.home}</div>
-    <div class="badges">${i.ornek?'<span class="badge b-ornek">Örnek</span>':''}<span class="badge b-islem">${esc(i.islem)}</span>${i.durum!=='Aktif'?`<span class="badge st-${i.durum}">${esc(i.durum)}</span>`:''}</div>
+    <div class="badges">${i.ornek?'<span class="badge b-ornek">Örnek</span>':''}<span class="badge b-islem">${esc(i.islem)}</span>${i.durum!=='Aktif'?`<span class="badge st-${i.durum}">${esc(durumYazi(i,true))}</span>`:''}</div>
     <div class="body">${pfEtiket(i)}<div class="price">${fiyatYazi(i)}</div>
     <div class="ttl">${esc(i.baslik||'(Başlıksız ilan)')}</div>
     <div class="specs"><span>${esc(t?t.ad:'')}</span>${kartOzet(i).map(x=>`<span>${esc(x)}</span>`).join('')}</div>
@@ -1237,7 +1237,7 @@ async function detay(id){
       ${fotolar.length>1?`<div class="thumbs">${furl.map((u,k)=>`<img src="${u}" data-k="${k}" class="${k?'':'on'}" alt="">`).join('')}</div>`:''}`
      :`<div class="panel empty">${IC.home}<b>Fotoğraf eklenmemiş</b><a href="#/duzenle/${i.id}">Fotoğraf ekle</a></div>`}
     <div class="panel" style="margin-top:12px">
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">${i.ornek?'<span class="badge b-ornek">Örnek ilan</span>':''}<span class="badge b-islem">${esc(i.islem)}</span><span class="badge st-${i.durum}">${esc(i.durum)}</span></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">${i.ornek?'<span class="badge b-ornek">Örnek ilan</span>':''}<span class="badge b-islem">${esc(i.islem)}</span><span class="badge st-${i.durum}">${esc(durumYazi(i))}</span></div>
       <div class="price" style="font-size:30px">${fiyatYazi(i)}</div>
       <h1 style="margin:4px 0 6px">${esc(i.baslik||'(Başlıksız ilan)')}</h1>
       <div class="muted">${esc([i.mahalle&&i.mahalle+' Mah.',i.ilce,i.il].filter(Boolean).join(', '))}</div>
@@ -1263,7 +1263,7 @@ async function detay(id){
     ${(()=>{const u=ilanaUyanlar(i);if(!u.length)return '';return `<div class="panel esl"><h2>Uygun müşteriler (${u.length})</h2>${u.map(({m,t,r,g})=>`<div class="msat" style="display:block"><a href="#/musteri/${m.id}" style="text-decoration:none;color:inherit"><b>${esc(m.ad)}</b></a> ${r.tam?'<span class="tag ok">Tam uyuyor</span>':'<span class="tag yk">Yakın</span>'}${g?` <span class="tag gd">Gönderildi ${esc(gun(g.t))}</span>`:''}
       <div class="small muted">${esc(talepOzet(t))}${r.notlar.length?' · '+esc(r.notlar.join(', ')):''}</div>
       <div class="actions" style="margin-top:6px"><button class="btn" data-mgon="${m.id}" data-talep="${t.id}">${IC.wa} ${g?'Tekrar gönder':'Gönder'}</button>${m.tel?`<a class="btn ghost" href="tel:${esc(m.tel.replace(/\s/g,''))}">${IC.phone} Ara</a>`:''}</div></div>`).join('')}</div>`})()}
-    <div class="panel"><h2>Durumu değiştir</h2><div class="actions">${DURUMLAR.filter(d=>d!==i.durum&&!(d==='Satıldı'&&/Kiralık/.test(i.islem))&&!(d==='Kiralandı'&&!/Kiralık/.test(i.islem))).map(d=>`<button class="btn" data-durum="${d}">${ARSIV.includes(i.durum)&&!ARSIV.includes(d)?'Tekrar yayına al: ':''}${d}</button>`).join('')}</div>
+    <div class="panel"><h2>Durumu değiştir</h2>${i.durum==='Opsiyonlu'?`<div class="linkbox" style="margin-bottom:10px;${opsiyonKalan(i)!=null&&opsiyonKalan(i)<=0?'border-color:#E6A24A;background:#FFF6E6':''}"><b>${esc(durumYazi(i))}</b>${i.opsiyon&&(i.opsiyon.kime||i.opsiyon.not)?`<div class="small">${esc([i.opsiyon.kime,i.opsiyon.not].filter(Boolean).join(' · '))}</div>`:''}<div class="actions" style="margin-top:8px"><button class="btn" id="opUzat">${i.opsiyon&&i.opsiyon.bitis?'Opsiyonu uzat / değiştir':'Opsiyon tarihi ver'}</button></div></div>`:''}<div class="actions">${DURUMLAR.filter(d=>d!==i.durum&&!(d==='Satıldı'&&/Kiralık/.test(i.islem))&&!(d==='Kiralandı'&&!/Kiralık/.test(i.islem))).map(d=>`<button class="btn" data-durum="${d}">${ARSIV.includes(i.durum)&&!ARSIV.includes(d)?'Tekrar yayına al: ':''}${d}</button>`).join('')}</div>
       <hr style="border:0;border-top:1px solid var(--line);margin:14px 0"><button class="btn danger" id="copaTasi">Sil (çöp kutusuna taşı)</button></div>
     <div class="panel private"><div class="private-tag">${IC.lock} Sadece size özel, paylaşımda görünmez</div>
       ${(()=>{const t=pfTip(i);const k=t==='ekip'?ekipBul(i.portfoy.refId):t==='dis'?ofisBul(i.portfoy.refId):null;if(!k)return '';
@@ -1293,20 +1293,37 @@ async function detay(id){
   if(i.konum)miniHarita($('#mm'),i.konum,i);
   $$('[data-durum]').forEach(b=>b.onclick=()=>durumDegis(i,b.dataset.durum));
   $('#copaTasi').onclick=()=>copaTasi(i);
+  {const ou=$('#opUzat');if(ou)ou.onclick=async()=>{const o=await opsiyonFormu(i,'Opsiyon süresi');if(!o)return;i.opsiyon=o;i.updatedAt=Date.now();(i.gecmis=i.gecmis||[]).push({t:Date.now(),m:o.bitis?`Opsiyon ${gun(o.bitis)} tarihine uzatıldı`:'Opsiyon süresiz yapıldı'});await put('ilanlar',i);toast('Opsiyon güncellendi');ciz()}}
   linkKutuBagla(i);satisBagla(i);surecBagla(i);{const yb=$('#ygBtn');if(yb)yb.onclick=()=>{S.ygOn={ilanIds:[i.id]};location.hash='#/yg-yeni'}}ofisPaylasimBagla(i);ofisDuzenlemeBagla(i);ofisTalepGizleBagla(()=>ciz());randevuBagla(()=>ciz());$('#iRandevu').onclick=()=>randevuFormu(null,{ilanId:i.id,tur:'Yer gösterme'},()=>ciz());
   $$('[data-mgon]').forEach(b=>b.onclick=()=>musteriyeGonder(musteriBul(b.dataset.mgon),[i],b.dataset.talep));
   $$('[data-pay]').forEach(b=>b.onclick=async()=>{const bs=$$('[data-pay]');bs.forEach(x=>x.disabled=true);const d=$('#payDurum');
     try{await paylas(b.dataset.pay,i,fotolar,m=>d.textContent=m)}catch(e){if(e&&e.name!=='AbortError'){toast('Paylaşım yapılamadı: '+(e.name||'')+' '+(e.message||''));console.error(e)}}
     finally{bs.forEach(x=>x.disabled=false)}});
 }
+function opsiyonKalan(i){if(i.durum!=='Opsiyonlu'||!i.opsiyon||!i.opsiyon.bitis)return null;return Math.round((new Date(i.opsiyon.bitis+'T00:00').getTime()-bugunBas())/864e5)}
+function durumYazi(i,kisa){if(i.durum!=='Opsiyonlu'||!i.opsiyon||!i.opsiyon.bitis)return i.durum;const k=opsiyonKalan(i);const d=new Date(i.opsiyon.bitis+'T00:00');
+  if(kisa)return `Opsiyonlu · ${d.toLocaleDateString('tr-TR',{day:'numeric',month:'short'})}`+(k<0?' (doldu)':'');
+  return `Opsiyonlu · ${d.toLocaleDateString('tr-TR',{day:'numeric',month:'long'})} tarihine kadar`+(k<0?` (${-k} gün önce doldu)`:k===0?' (bugün bitiyor)':` (${k} gün)`)}
+async function opsiyonFormu(i,baslikTxt){const o=i.opsiyon||{};const ileri=g=>tarihInput(Date.now()+g*864e5);
+  const html=`<p class="small muted" style="margin-top:-4px">${esc(i.baslik)}</p>
+   <label class="f"><span>Opsiyon bitiş tarihi</span><input type="date" id="opB" value="${esc(o.bitis||ileri(3))}"></label>
+   <div class="actions" style="margin-top:8px">${[[1,'1 gün'],[3,'3 gün'],[7,'1 hafta'],[15,'15 gün'],[30,'1 ay']].map(([g,l])=>`<button type="button" class="btn ghost" data-opg="${g}" style="min-height:34px;padding:4px 12px">${l}</button>`).join('')}</div>
+   <label class="f" style="margin-top:10px"><span>Kime (isteğe bağlı)</span><input type="text" id="opK" value="${esc(o.kime||'')}" placeholder="Müşteri adı"></label>
+   <label class="f" style="margin-top:10px"><span>Not (isteğe bağlı)</span><input type="text" id="opN" value="${esc(o.not||'')}" placeholder="Örn. 50.000 TL kapora alındı"></label>`;
+  const dg=[{ad:'Vazgeç',deger:null},{ad:'Süresiz',deger:'yok'},{ad:'Kaydet',deger:'k',sinif:'pri'}];
+  dg.onAc=bg=>bg.querySelectorAll('[data-opg]').forEach(b=>b.onclick=()=>{bg.querySelector('#opB').value=ileri(+b.dataset.opg)});
+  const r=await formSheet(baslikTxt||'Opsiyon süresi',html,dg);if(!r)return null;if(r.deger==='yok')return {bitis:'',kime:r.el.querySelector('#opK').value.trim(),not:r.el.querySelector('#opN').value.trim()};
+  return {bitis:r.el.querySelector('#opB').value,kime:r.el.querySelector('#opK').value.trim(),not:r.el.querySelector('#opN').value.trim(),verildi:Date.now()}}
 async function durumDegis(i,yeni){
   let kayit=null;
+  if(yeni==='Opsiyonlu'&&i.durum!=='Opsiyonlu'){const o=await opsiyonFormu(i,'Opsiyon ne zamana kadar?');if(!o)return;i.opsiyon=o}
+  if(yeni!=='Opsiyonlu'&&i.opsiyon)i.opsiyon=null;
   if(ARSIV.includes(yeni)){kayit=await satisFormu(i,yeni);if(!kayit)return;if(kayit.atla)kayit=null}
   if(kayit){const pasif=kayit.pasifYap;delete kayit.pasifYap;(i.satislar=i.satislar||[]).push(kayit);
     (i.gecmis=i.gecmis||[]).push({t:Date.now(),m:`${kayit.tur} kaydı: ${para(kayit.bedel)}${kayit.karsiAd?' · '+kayit.karsiAd:''}`});
     if(kayit.musteriId){const m=musteriBul(kayit.musteriId);if(m){(m.gecmis=m.gecmis||[]).push({t:Date.now(),m:`${kayit.tur==='Satış'?'Satın aldı':'Kiraladı'}: ${i.baslik}`});if(pasif)(m.talepler||[]).forEach(t=>t.aktif=false);await musteriKaydet(m)}}}
   const eski=i.durum;i.durum=yeni;i.updatedAt=Date.now();i.sync='bekliyor';
-  (i.gecmis=i.gecmis||[]).push({t:Date.now(),m:`Durum: ${eski} → ${yeni}`});
+  (i.gecmis=i.gecmis||[]).push({t:Date.now(),m:`Durum: ${eski} → ${yeni}${yeni==='Opsiyonlu'&&i.opsiyon&&i.opsiyon.bitis?' ('+gun(i.opsiyon.bitis)+' tarihine kadar'+(i.opsiyon.kime?', '+i.opsiyon.kime:'')+')':''}`});
   await put('ilanlar',i);toast(ARSIV.includes(yeni)?'İlan arşive taşındı':`Durum "${yeni}" yapıldı`);
   if(ARSIV.includes(yeni))location.hash='#/arsiv';else ciz();
 }
@@ -1787,6 +1804,7 @@ async function esitle(){
     await gonder();
     await eksikDosyalariIndir();
     await yayinlariGuncelle();
+    try{await bildirimPlanla()}catch(e){console.warn('bildirim',e)}
     try{await ofisYukle();if(await ofisDuzenlemeleriUygula())degisti=true;await ofisYayinlariGuncelle();await ofisTalepleriYayinla()}catch(e){console.warn('ofis',e)}
     if(await copTemizle())degisti=true;
     BULUT.hata='';await kvSet('sonEsitleme',Date.now());
@@ -2093,6 +2111,7 @@ function hatirlatmalar(){const h=hAyar(),now=Date.now(),gz=S.ayarlar.hatirlatmaG
     if(yb&&!ARSIV.includes(i.durum)){const kalan=Math.ceil((new Date(yb)-now)/864e5);if(kalan<=h.yetki)ekle('yetki:'+i.id+':'+yb,{tur:'Yetki sözleşmesi',acil:kalan<=3,i,metin:kalan<0?`Yetki sözleşmesinin süresi ${-kalan} gün önce doldu`:kalan===0?'Yetki sözleşmesi bugün bitiyor':`Yetki sözleşmesi ${kalan} gün sonra bitiyor`,oneri:'Mal sahibiyle yenilemeyi konuşun.'})}
     const son=(i.satislar||[]).slice(-1)[0];
     if(i.durum==='Kiralandı'&&son&&son.tur==='Kiralama'&&son.kiraBitis){const kalan=Math.ceil((new Date(son.kiraBitis)-now)/864e5);if(kalan<=h.kira)ekle('kira:'+i.id+':'+son.kiraBitis,{tur:'Kira kontratı',acil:kalan<=15,i,metin:kalan<0?`Kira kontratı ${-kalan} gün önce bitti`:`Kira kontratı ${kalan} gün sonra bitiyor`,oneri:'Mal sahibini ve kiracıyı arayın; kiracı çıkacaksa ilanı tekrar yayına alın.'})}
+    {const k=opsiyonKalan(i);if(k!=null&&k<=1)ekle('opsiyon:'+i.id+':'+i.opsiyon.bitis,{tur:'Opsiyon',acil:true,i,metin:k<0?`Opsiyon süresi ${-k} gün önce doldu`:k===0?'Opsiyon bugün bitiyor':'Opsiyon yarın bitiyor',oneri:`${i.opsiyon.kime?i.opsiyon.kime+' ile':'Müşteriyle'} görüşün; opsiyonu uzatın ya da ilanı tekrar Aktif yapın.`})}
     if(i.durum==='Aktif'&&h.hareketsiz>0){const gun_=Math.floor((now-(i.updatedAt||i.createdAt))/864e5);if(gun_>=h.hareketsiz)ekle('hareket:'+i.id,{tur:'Hareketsiz ilan',acil:false,i,metin:`${gun_} gündür değişiklik yok`,oneri:'Fiyatı ve fotoğrafları gözden geçirin, mal sahibini arayın.'})}}
   return out.sort((a,b)=>b.acil-a.acil)}
 function bugununRandevulari(){const b=bugunBas();return (S.randevular||[]).filter(r=>!r.tamam&&r.t<b+864e5).sort((a,c)=>a.t-c.t)}
@@ -2639,7 +2658,7 @@ async function surecBaslat(i,tur){
   const hedef=v('spT').value;if(hedef){const son=adimlar.find(a=>/Tapu devri|Anahtar teslim/i.test(a.ad));if(son)son.tarih=hedef}
   const mId=v('spM').value;
   i.surec={tur,durum:'devam',basladi:Date.now(),musteriId:mId,karsiAd:v('spA').value.trim()||(mId?musteriBul(mId).ad:''),bedel:sayi(v('spB').value),kredi,hedef,adimlar,notlar:''};
-  const eskiDurum=i.durum;if(i.durum==='Aktif')i.durum='Opsiyonlu';i.updatedAt=Date.now();
+  const eskiDurum=i.durum;if(i.durum==='Aktif'){i.durum='Opsiyonlu';i.opsiyon={bitis:hedef||'',kime:i.surec.karsiAd||'',not:(kira?'Kiralama':'Satış')+' süreci',verildi:Date.now()}}i.updatedAt=Date.now();
   (i.gecmis=i.gecmis||[]).push({t:Date.now(),m:`${kira?'Kiralama':'Satış'} süreci başladı${i.surec.karsiAd?' · '+i.surec.karsiAd:''}${eskiDurum!==i.durum?' (ilan Opsiyonlu yapıldı)':''}`});
   await put('ilanlar',i);toast('Süreç başlatıldı');ciz()}
 function surecPanelHtml(i){
@@ -2677,7 +2696,7 @@ function surecBagla(i){
     if(r.deger==='rnd')await randevuFormu(null,{ilanId:i.id,musteriId:sr.musteriId||'',baslik:a.ad,t:a.tarih?new Date(a.tarih+'T10:00').getTime():null,tur:/Tapu/i.test(a.ad)?'Tapu işlemi':/sözleşme/i.test(a.ad)?'Sözleşme imzası':'Diğer'},()=>ciz())});
   $('#srEkle').onclick=async()=>{const ad=prompt('Yeni adım:','');if(!ad||!ad.trim())return;sr.adimlar.push({id:uid(),ad:ad.trim(),tamam:false,tarih:'',bitti:null,not:''});kaydet()};
   $('#srNot').onclick=async()=>{const r=await formSheet('Süreç notu',`<textarea id="snN" style="min-height:140px;width:100%">${esc(sr.notlar||'')}</textarea>`,[{ad:'Vazgeç',deger:null},{ad:'Kaydet',deger:'k',sinif:'pri'}]);if(!r)return;sr.notlar=r.el.querySelector('#snN').value;kaydet()};
-  $('#srIptal').onclick=async()=>{if(!confirm('Süreç iptal edilsin mi? İlan tekrar Aktif yapılır.'))return;sr.durum='iptal';sr.bitti=Date.now();(i.surecGecmisi=i.surecGecmisi||[]).push({...sr});i.surec=null;if(i.durum==='Opsiyonlu')i.durum='Aktif';kaydet(`${sr.tur==='kira'?'Kiralama':'Satış'} süreci iptal edildi`)};
+  $('#srIptal').onclick=async()=>{if(!confirm('Süreç iptal edilsin mi? İlan tekrar Aktif yapılır.'))return;sr.durum='iptal';sr.bitti=Date.now();(i.surecGecmisi=i.surecGecmisi||[]).push({...sr});i.surec=null;if(i.durum==='Opsiyonlu'){i.durum='Aktif';i.opsiyon=null}kaydet(`${sr.tur==='kira'?'Kiralama':'Satış'} süreci iptal edildi`)};
   $('#srBitir').onclick=async()=>{const eksik=sr.adimlar.filter(a=>!a.tamam).length;if(eksik&&!confirm(`${eksik} adım tamamlanmadı. Yine de süreç kapatılsın mı?`))return;
     const hedef=sr.tur==='kira'?'Kiralandı':'Satıldı';S.surecKapat={ilanId:i.id,musteriId:sr.musteriId,karsiAd:sr.karsiAd,bedel:sr.bedel};
     await durumDegis(i,hedef);const g=ilanBul(i.id)||(S.ilanlar.concat(S.cop||[])).find(x=>x.id===i.id)||await tx('ilanlar','readonly',s0=>s0.get(i.id));
@@ -2868,6 +2887,61 @@ async function ygGorSayfa(id){const b=(S.yg||[]).find(x=>x.id===id);if(!b){locat
     else{indir(f,f.name);window.open(`https://wa.me/${b.musteri.tel?waNo(b.musteri.tel):''}?text=${encodeURIComponent(txt)}`,'_blank');toast('PDF indirildi; WhatsApp\'ta sohbete ekleyin')}};
   $('#ygSil').onclick=async()=>{if(!confirm(`${b.no} numaralı imzalı belge silinsin mi? Bu işlem geri alınamaz.`))return;await del('ygbelgeler',b.id);S.yg=S.yg.filter(x=>x.id!==b.id);toast('Belge silindi');history.back()};
 }
+
+
+/* ========== TELEFON BİLDİRİMLERİ ========== */
+const VAPID_PUBLIC='BKV43YzWLLjaqhJiZqhnPZLcCmpw4NltbENJT2KvmChCkamGB_0t2A0Xkd3rclZpnWXFQ5fgjXoTLbKxJJgbey0';
+function b64uint8(b){const p='='.repeat((4-b.length%4)%4);const s=atob((b+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from([...s].map(c=>c.charCodeAt(0)))}
+const bildirimDestek=()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+const iosMu=()=>/iPhone|iPad/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const anaEkrandan=()=>window.navigator.standalone===true||matchMedia('(display-mode: standalone)').matches;
+function bildirimTurleri(){return {randevu:true,opsiyon:true,surec:true,sozlesme:true,...(S.ayarlar.bildirim||{})}}
+async function bildirimAboneligi(){if(!bildirimDestek())return null;const reg=await navigator.serviceWorker.ready;return await reg.pushManager.getSubscription()}
+async function bildirimAc(){
+  if(!BULUT.oturum)throw new Error('Önce buluta giriş yapın.');
+  if(!bildirimDestek())throw new Error(iosMu()?'iPhone\'da bildirimler için programı ana ekrandaki simgeden açın (iOS 16.4 veya üstü gerekir).':'Bu tarayıcı bildirimleri desteklemiyor. Chrome kullanın.');
+  if(iosMu()&&!anaEkrandan())throw new Error('iPhone\'da bildirimleri açmak için programı Safari\'den değil, ana ekrandaki simgeden açın.');
+  const izin=await Notification.requestPermission();if(izin!=='granted')throw new Error('Bildirim izni verilmedi. Telefonun ayarlarından bu uygulamaya bildirim izni verin.');
+  const reg=await navigator.serviceWorker.ready;let sub=await reg.pushManager.getSubscription();
+  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64uint8(VAPID_PUBLIC)});
+  const j=sub.toJSON();const cihaz=(iosMu()?'iPhone':/Android/i.test(navigator.userAgent)?'Android':'Bilgisayar')+' · '+new Date().toLocaleDateString('tr-TR');
+  await sbTamam(await sb('/rest/v1/bildirim_abonelik?on_conflict=endpoint',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify([{endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth,cihaz,user_id:BULUT.oturum.user.id}])}),'Bildirim kaydı yapılamadı (Supabase bildirim kurulumu yapılmış mı?)');
+  await kvSet('bildirimAcik',true);await kvSet('bildirimPlan',{});await bildirimPlanla(true)}
+async function bildirimKapat(){const sub=await bildirimAboneligi();if(sub){try{await sb(`/rest/v1/bildirim_abonelik?endpoint=eq.${encodeURIComponent(sub.endpoint)}`,{method:'DELETE'})}catch(e){}await sub.unsubscribe()}await kvSet('bildirimAcik',false)}
+function bildirimListesi(){const tr=bildirimTurleri(),out=[],simdi=Date.now(),s9=d=>new Date(d+'T09:00').getTime();const h=hAyar();
+  const ekle=(k,z,b,g,u)=>{if(z>simdi-60000&&z<simdi+120*864e5)out.push({k,z,b,g,u})};
+  if(tr.randevu)for(const r of S.randevular||[]){if(r.tamam)continue;const m=r.musteriId&&musteriBul(r.musteriId),i=r.ilanId&&ilanBul(r.ilanId);
+    const g=[m&&m.ad,i&&i.baslik,r.yer].filter(Boolean).join(' · ');ekle(`r:${r.id}:60`,r.t-3600e3,`1 saat sonra: ${r.tur} (${saat(r.t)})`,g,'#/ajanda');ekle(`r:${r.id}:15`,r.t-900e3,`15 dakika sonra: ${r.tur} (${saat(r.t)})`,g,'#/ajanda')}
+  for(const i of S.ilanlar||[]){if(i.ornek)continue;
+    if(tr.opsiyon&&i.durum==='Opsiyonlu'&&i.opsiyon&&i.opsiyon.bitis){ekle(`o:${i.id}:${i.opsiyon.bitis}`,s9(i.opsiyon.bitis),'Opsiyon bugün bitiyor',`${i.baslik}${i.opsiyon.kime?' · '+i.opsiyon.kime:''}`,'#/ilan/'+i.id)}
+    if(tr.surec&&i.surec&&i.surec.durum==='devam')for(const a of i.surec.adimlar)if(!a.tamam&&a.tarih)ekle(`s:${i.id}:${a.id}:${a.tarih}`,s9(a.tarih),`Bugün: ${a.ad}`,i.baslik,'#/ilan/'+i.id);
+    if(tr.sozlesme){const yb=i.sahip&&i.sahip.yetkiBitis;if(yb&&!ARSIV.includes(i.durum))ekle(`y:${i.id}:${yb}`,s9(tarihInput(new Date(yb).getTime()-Math.min(h.yetki,7)*864e5)),'Yetki sözleşmesi bitiyor',`${i.baslik} · bitiş ${gun(yb)}`,'#/ilan/'+i.id);
+      const son=(i.satislar||[]).slice(-1)[0];if(i.durum==='Kiralandı'&&son&&son.kiraBitis)ekle(`k:${i.id}:${son.kiraBitis}`,s9(tarihInput(new Date(son.kiraBitis).getTime()-30*864e5)),'Kira kontratı 30 gün sonra bitiyor',`${i.baslik} · bitiş ${gun(son.kiraBitis)}`,'#/ilan/'+i.id)}}
+  return out}
+async function bildirimPlanla(zorla){
+  if(!BULUT.oturum||!navigator.onLine||!(await kvGet('bildirimAcik')))return;const uid=BULUT.oturum.user.id;
+  const once=(await kvGet('bildirimPlan'))||{};const simdi={};const gonder=[];
+  for(const x of bildirimListesi()){const id=uid.slice(0,8)+':'+x.k;const h=kisaImza([x.z,x.b,x.g].join('|'));simdi[id]=h;
+    if(zorla||once[id]!==h)gonder.push({id,user_id:uid,zaman:new Date(x.z).toISOString(),baslik:x.b.slice(0,120),govde:(x.g||'').slice(0,240),url:'./'+x.u,gonderildi:null})}
+  if(gonder.length)await sbTamam(await sb('/rest/v1/bildirim_kuyruk?on_conflict=id',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(gonder)}),'Bildirimler planlanamadı');
+  const sil=Object.keys(once).filter(id=>!(id in simdi));
+  for(let k=0;k<sil.length;k+=40){const p=sil.slice(k,k+40).map(x=>'"'+x.replace(/"/g,'')+'"').join(',');await sb(`/rest/v1/bildirim_kuyruk?id=in.(${encodeURIComponent(p)})&gonderildi=is.null`,{method:'DELETE'}).catch(()=>{})}
+  await kvSet('bildirimPlan',simdi)}
+async function bildirimTest(){const uid=BULUT.oturum.user.id;
+  await sbTamam(await sb('/rest/v1/bildirim_kuyruk',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify([{id:uid.slice(0,8)+':test:'+Date.now(),user_id:uid,zaman:new Date().toISOString(),baslik:'Portföy Defteri',govde:'Test bildirimi: bildirimler bu cihazda çalışıyor.',url:'./#/ayarlar'}])}),'Test bildirimi oluşturulamadı');
+  try{await fetch(SB_URL+'/functions/v1/bildirim-gonder',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY},body:'{}'})}catch(e){}}
+async function bildirimPanelCiz(){const el=$('#bildirimPanel');if(!el)return;const tr=bildirimTurleri();
+  const acik=await kvGet('bildirimAcik');const sub=acik&&await bildirimAboneligi().catch(()=>null);const durum=!BULUT.oturum?'Bulut girişi gerekli':!bildirimDestek()?'Bu tarayıcıda desteklenmiyor':sub&&Notification.permission==='granted'?'Açık':'Kapalı';
+  el.innerHTML=`<h2>Telefon bildirimleri</h2><p class="small muted" style="margin-top:-6px">Program kapalıyken de randevu, opsiyon bitişi, süreç adımı ve sözleşme bitişleri için telefonunuza bildirim gelir. Her cihazda ayrı açılır.${iosMu()?' iPhone’da programı ana ekrandaki simgeden açmış olmanız gerekir.':''}</p>
+    <p style="margin:0 0 10px">Bu cihaz: <b>${durum}</b></p>
+    <div class="actions">${durum==='Açık'?`<button class="btn" id="bdTest">Test bildirimi gönder</button><button class="btn ghost" id="bdKapat">Bu cihazda kapat</button>`:`<button class="btn pri" id="bdAc" ${!BULUT.oturum?'disabled':''}>Bu cihazda bildirimleri aç</button>`}</div>
+    <div class="checks" style="margin-top:12px">${[['randevu','Randevular (1 saat ve 15 dk önce)'],['opsiyon','Opsiyon bitişi'],['surec','Süreç adımları'],['sozlesme','Yetki ve kira sözleşmesi bitişi']].map(([k,l])=>`<label><input type="checkbox" data-bdt="${k}" ${tr[k]?'checked':''}>${l}</label>`).join('')}</div>
+    <p class="small" id="bdMsj" style="min-height:1.2em;color:var(--danger)"></p>`;
+  const msj=t=>{$('#bdMsj').textContent=t};
+  const a=$('#bdAc');if(a)a.onclick=async()=>{a.disabled=true;a.textContent='Açılıyor…';try{await bildirimAc();toast('Bildirimler açıldı');bildirimPanelCiz()}catch(e){msj(e.message||String(e));a.disabled=false;a.textContent='Bu cihazda bildirimleri aç'}};
+  const t=$('#bdTest');if(t)t.onclick=async()=>{t.disabled=true;try{await bildirimTest();toast('Test bildirimi gönderildi; birkaç saniye içinde gelmeli')}catch(e){msj(e.message)}t.disabled=false};
+  const k=$('#bdKapat');if(k)k.onclick=async()=>{await bildirimKapat();toast('Bu cihazda bildirimler kapatıldı');bildirimPanelCiz()};
+  $$('[data-bdt]').forEach(c=>c.onchange=async()=>{S.ayarlar.bildirim={...bildirimTurleri(),[c.dataset.bdt]:c.checked};await ayarKaydet();bildirimPlanla().catch(()=>{})})}
 
 /* ========== ilan linki (herkese açık ilan sayfası) ========== */
 const YAYIN_KOVA='yayin';
@@ -3152,6 +3226,7 @@ function ayarlarSayfa(){
     <p class="small muted">Özel türlerin sahibinden'de birebir karşılığı yoktur; aktarırken en yakın türü seçmeniz gerekir.</p></details>
   </div>
   <div class="panel" id="ofisPanel"></div>
+  <div class="panel" id="bildirimPanel"></div>
   <div class="panel"><h2>Bulut ve eşitleme</h2><div id="bulutDurum"></div></div>
   <div class="panel"><h2>Sahibinden'den telefonla aktarma</h2>
    <p class="small muted" style="margin-top:-6px">Telefonda sahibinden ilanını açıklaması ve konumuyla birlikte kopyalamak için bir kerelik kurulum.</p>
@@ -3198,7 +3273,7 @@ function ayarlarSayfa(){
   $('#turEkle').onclick=async()=>{const ad=$('#yTur').value.trim();if(!ad){toast('Tür adını yazın');return}
     if(a.turler.some(t=>t.ad.toLocaleLowerCase('tr')===ad.toLocaleLowerCase('tr')&&t.ana===$('#yAna').value)){toast('Bu tür zaten var');return}
     a.turler.push({id:'o'+uid().slice(0,8),ana:$('#yAna').value,ad,aktif:true,ozel:true,ekAlanlar:$('#yEk').value.split(',').map(x=>x.trim()).filter(Boolean)});await ayarKaydet();toast(`"${ad}" eklendi`);ciz()};
-  bulutPanelCiz();ofisPanelCiz();
+  bulutPanelCiz();ofisPanelCiz();bildirimPanelCiz();
   $('#hKaydet').onclick=async()=>{const n=id=>Math.max(0,parseInt($('#'+id).value)||0);a.hatirlatma={yetki:n('hY'),kira:n('hK'),hareketsiz:n('hH')};await ayarKaydet();toast('Hatırlatma ayarları kaydedildi')};
   $$('[data-kkop]').forEach(b=>b.onclick=async()=>{const t=b.dataset.kkop==='ios'?KISAYOL_IOS:KISAYOL_ANDROID;
     try{await navigator.clipboard.writeText(t)}catch(e){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove()}toast('Kopyalandı')});
@@ -3341,7 +3416,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.09.28-2047';
+const SURUM='2026.09.28-2058';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
