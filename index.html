@@ -1849,9 +1849,19 @@ function bulutPanelCiz(){const el=$('#bulutDurum');if(!el)return;const o=BULUT.o
   kvGet('sonEsitleme').then(async t=>{if(!document.body.contains(el))return;const n=await bekleyenSayisi();if(!document.body.contains(el))return;const eks=Object.keys((await kvGet('eksikDosyalar'))||{}).length;
     el.innerHTML=`<table class="kv"><tr><td>Hesap</td><td>${esc(o.user.email)}</td></tr><tr><td>Son eşitleme</td><td>${t?tarih(t):'Henüz yok'}</td></tr>
       <tr><td>Durum</td><td>${BULUT.calisiyor?'Eşitleniyor…':BULUT.hata?`<span style="color:var(--danger)">${esc(BULUT.hata)}</span>`:n?n+' kayıt gönderilmeyi bekliyor':'Her şey eşitlendi'}${eks?` · ${eks} dosya indirilecek`:''}</td></tr></table>
-      <div class="actions" style="margin-top:10px"><button class="btn pri" id="bSimdi">Şimdi eşitle</button><button class="btn" id="bCikis">Oturumu kapat</button></div>
+      <div class="actions" style="margin-top:10px"><button class="btn pri" id="bSimdi">Şimdi eşitle</button><button class="btn" id="bSifre">Şifreyi değiştir</button><button class="btn" id="bCikis">Oturumu kapat</button></div>
       <p class="small muted">Oturumu kapatınca bu cihazdaki veriler silinmez, sadece eşitleme durur.</p>`;
-    $('#bSimdi').onclick=()=>{esitle();setTimeout(bulutPanelCiz,300)};$('#bCikis').onclick=async()=>{if(!confirm('Oturum kapatılsın mı?'))return;const bek=await bekleyenSayisi();
+    $('#bSimdi').onclick=()=>{esitle();setTimeout(bulutPanelCiz,300)};
+    $('#bSifre').onclick=async()=>{const r=await formSheet('Şifreyi değiştir',`<label class="f"><span>Mevcut şifre</span><input type="password" id="sfE" autocomplete="current-password"></label>
+      <label class="f" style="margin-top:10px"><span>Yeni şifre (en az 6 karakter)</span><input type="password" id="sfY" autocomplete="new-password"></label>
+      <label class="f" style="margin-top:10px"><span>Yeni şifre (tekrar)</span><input type="password" id="sfT" autocomplete="new-password"></label><p class="small" id="sfM" style="color:var(--danger);min-height:1.2em"></p>`,
+      [{ad:'Vazgeç',deger:null},{ad:'Şifreyi değiştir',deger:'k',sinif:'pri',dogrula:async bg=>{const g=id=>bg.querySelector('#'+id).value,m=bg.querySelector('#sfM');
+        if(g('sfY').length<6){m.textContent='Yeni şifre en az 6 karakter olmalı.';return false}if(g('sfY')!==g('sfT')){m.textContent='Yeni şifreler aynı değil.';return false}
+        if(!navigator.onLine){m.textContent='İnternet bağlantısı gerekiyor.';return false}
+        try{await oturumKaydet(await authIstek('token?grant_type=password',{email:BULUT.oturum.user.email,password:g('sfE')}))}catch(e){m.textContent='Mevcut şifre yanlış.';return false}
+        const rr=await fetch(SB_URL+'/auth/v1/user',{method:'PUT',headers:{apikey:SB_KEY,Authorization:'Bearer '+BULUT.oturum.access_token,'Content-Type':'application/json'},body:JSON.stringify({password:g('sfY')})});
+        if(!rr.ok){const j=await rr.json().catch(()=>({}));m.textContent=/same|different/i.test(JSON.stringify(j))?'Yeni şifre eskisiyle aynı olamaz.':authHata(j);return false}return true}}]);
+      if(r)toast('Şifreniz değiştirildi. Diğer cihazlarda yeni şifreyle giriş yapmanız gerekebilir.')};$('#bCikis').onclick=async()=>{if(!confirm('Oturum kapatılsın mı?'))return;const bek=await bekleyenSayisi();
       const sil=confirm('Bu cihazdaki verileri de silmek ister misiniz?\n\nCihazı başka biri de kullanıyorsa silmeniz önerilir. Verileriniz bulutta durmaya devam eder, tekrar giriş yapınca geri gelir.'+(bek?`\n\nDİKKAT: ${bek} kayıt henüz buluta gönderilmedi, silerseniz kaybolur.`:'')+'\n\nTamam: sil · İptal: cihazda kalsın');
       await oturumKapat();if(sil){await cihazVerisiniSil();await kvSet('sahipId',null);toast('Oturum kapatıldı, cihaz temizlendi')}else toast('Oturum kapatıldı');ciz()}})}
 
@@ -2944,7 +2954,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.09.28-0419';
+const SURUM='2026.09.28-0422';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
