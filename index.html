@@ -2938,9 +2938,12 @@ async function bildirimPanelCiz(){const el=$('#bildirimPanel');if(!el)return;con
   const acik=await kvGet('bildirimAcik');const sub=acik&&await bildirimAboneligi().catch(()=>null);const durum=!BULUT.oturum?'Bulut girişi gerekli':!bildirimDestek()?'Bu tarayıcıda desteklenmiyor':sub&&Notification.permission==='granted'?'Açık':'Kapalı';
   el.innerHTML=`<h2>Telefon bildirimleri</h2><p class="small muted" style="margin-top:-6px">Program kapalıyken de randevu, opsiyon bitişi, süreç adımı ve sözleşme bitişleri için telefonunuza bildirim gelir. Her cihazda ayrı açılır.${iosMu()?' iPhone’da programı ana ekrandaki simgeden açmış olmanız gerekir.':''}</p>
     <p style="margin:0 0 10px">Bu cihaz: <b>${durum}</b></p>
-    <div class="actions">${durum==='Açık'?`<button class="btn" id="bdTest">Test bildirimi gönder</button><button class="btn ghost" id="bdKapat">Bu cihazda kapat</button>`:`<button class="btn pri" id="bdAc" ${!BULUT.oturum?'disabled':''}>Bu cihazda bildirimleri aç</button>`}</div>
+    <div class="actions">${durum==='Açık'?`<button class="btn" id="bdTest">Test bildirimi gönder</button><button class="btn ghost" id="bdYerel">Yerel test</button><button class="btn ghost" id="bdKapat">Bu cihazda kapat</button>`:`<button class="btn pri" id="bdAc" ${!BULUT.oturum?'disabled':''}>Bu cihazda bildirimleri aç</button>`}</div>
     <div class="checks" style="margin-top:12px">${[['randevu','Randevular (1 saat ve 15 dk önce)'],['opsiyon','Opsiyon bitişi'],['surec','Süreç adımları'],['sozlesme','Yetki ve kira sözleşmesi bitişi']].map(([k,l])=>`<label><input type="checkbox" data-bdt="${k}" ${tr[k]?'checked':''}>${l}</label>`).join('')}</div>
+    <p class="small muted" id="bdSon" style="margin:10px 0 0"></p><p class="small muted" style="margin:2px 0 0">Hesap: ${esc(BULUT.oturum?BULUT.oturum.user.email:'-')} · İzin: ${'Notification' in window?Notification.permission:'yok'} · ${anaEkrandan()?'ana ekran uygulaması':'tarayıcı'}</p>
     <p class="small" id="bdMsj" style="min-height:1.2em;color:var(--danger)"></p>`;
+  try{const c=await caches.open('pd-tani');const r=await c.match('./_son-push');const sp=$('#bdSon');if(sp)sp.textContent=r?'Bu cihaza son bildirim ulaşma zamanı: '+tarih((await r.clone().json()).t):'Bu cihaza sunucudan henüz bildirim ulaşmadı.'}catch(e){}
+  const yl=$('#bdYerel');if(yl)yl.onclick=async()=>{try{const reg=await navigator.serviceWorker.ready;await reg.showNotification('Portföy Defteri',{body:'Yerel test: Bu cihaz bildirim gösterebiliyor.',icon:'./icon-192.png'});msj('Yerel test bildirimi gösterildi. Ekranda görmediyseniz telefonun bildirim ayarlarını, Odak modunu ve Kilit Modu\'nu kontrol edin.')}catch(e){msj('Yerel bildirim gösterilemedi: '+(e.message||e))}};
   const msj=t=>{$('#bdMsj').textContent=t};
   const a=$('#bdAc');if(a)a.onclick=async()=>{a.disabled=true;a.textContent='Açılıyor…';try{await bildirimAc();toast('Bildirimler açıldı');bildirimPanelCiz()}catch(e){msj(e.message||String(e));a.disabled=false;a.textContent='Bu cihazda bildirimleri aç'}};
   const t=$('#bdTest');if(t)t.onclick=async()=>{t.disabled=true;msj('Gönderiliyor…');try{const sonuc=await bildirimTest();msj(sonuc||'');$('#bdMsj').style.color=/^Gönderildi/.test(sonuc)?'var(--brand-deep)':'var(--danger)'}catch(e){msj(e.message)}t.disabled=false};
@@ -3420,7 +3423,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.09.29-0411';
+const SURUM='2026.09.29-0423';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
