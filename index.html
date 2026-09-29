@@ -3289,6 +3289,38 @@ function karsiBagla(){const t=$('#kbTemizle');if(t)t.onclick=()=>{if(S.karsi.len
   if(S.karsiMod)$$('.lrow,.card').forEach(a=>{const m=(a.getAttribute('href')||'').match(/#\/ilan\/(.+)$/);if(!m)return;const id=m[1];a.classList.add('secilebilir');a.classList.toggle('secili',S.karsi.includes(id));
     a.onclick=e=>{e.preventDefault();if(karsiDegis(id)){a.classList.toggle('secili',S.karsi.includes(id));const bar=document.querySelector('.karsibar');if(bar){bar.outerHTML=karsiCubukHtml();karsiBagla()}}}})}
 function karsiSatirlari(L){const oz=L.map(i=>new Map(kisaOzellikler(i)));const etiketler=[];for(const m of oz)for(const k of m.keys())if(!etiketler.includes(k)&&k!=='m² Fiyatı')etiketler.push(k);return {oz,etiketler}}
+async function karsiPdf(L){
+  const W=1754,H=1240,M=56,renk=getComputedStyle(document.documentElement).getPropertyValue('--brand').trim()||'#3C7922';const f=S.ayarlar.firma;
+  const logo=await logoResim().catch(()=>null);const kap=await kapaklariYukle();
+  const resimler=await Promise.all(L.map(async i=>{const k=kap[i.id];if(!k)return null;try{return await blobResim(k.thumb||k.blob)}catch(e){return null}}));
+  const {oz,etiketler}=karsiSatirlari(L);const m2=L.map(i=>ilanM2(i));const m2f=L.map((i,k)=>i.fiyat&&m2[k]&&(i.paraBirimi||'TL')==='TL'?Math.round(i.fiyat/m2[k]):null);
+  const enK=a=>{const v=a.filter(x=>x!=null);return v.length>1?Math.min(...v):null},enB=a=>{const v=a.filter(x=>x!=null);return v.length>1?Math.max(...v):null};
+  const fMin=enK(L.map(i=>i.fiyat)),mfMin=enK(m2f),m2Max=enB(m2);
+  const satirlar=[['Fiyat',L.map(fiyatYazi),L.map(i=>fMin!=null&&i.fiyat===fMin)],['m² fiyatı',m2f.map(v=>v!=null?nf.format(v)+' TL/m²':''),m2f.map(v=>mfMin!=null&&v===mfMin)],
+    ['m²',m2.map(v=>v!=null?nf.format(v)+' m²':''),m2.map(v=>m2Max!=null&&v===m2Max)],['İşlem / tür',L.map(i=>`${i.islem} ${(turBul(i.turId)||{}).ad||''}`)],['Konum',L.map(i=>[i.mahalle,i.ilce].filter(Boolean).join(', '))],
+    ['Durum',L.map(i=>durumYazi(i,true))],...etiketler.filter(e=>!/^m² \(Brüt\)$|^m²$/.test(e)).map(e=>[e,oz.map(m=>m.get(e)||'')]),['İlan no',L.map(i=>i.no||'')]];
+  const LW=250,CW=(W-2*M-LW)/L.length,RH=40;const sayfalar=[];let g,y;
+  const yeni=()=>{const cv=document.createElement('canvas');cv.width=W;cv.height=H;g=cv.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,W,H);sayfalar.push(cv);
+    let x=M;if(logo){const r=Math.min(150/logo.naturalWidth,64/logo.naturalHeight);g.drawImage(logo,M,34,logo.naturalWidth*r,logo.naturalHeight*r);x=M+logo.naturalWidth*r+18}
+    g.fillStyle='#18211B';g.font=`700 28px ${FONT}`;g.fillText(f.ad||'',x,62);g.font=`400 18px ${FONT}`;g.fillStyle='#4A554C';g.fillText([f.yetkili,f.tel].filter(Boolean).join(' · '),x,90);
+    g.textAlign='right';g.fillStyle='#18211B';g.font=`800 30px ${FONT}`;g.fillText('İLAN KARŞILAŞTIRMA',W-M,62);g.font=`400 18px ${FONT}`;g.fillStyle='#4A554C';g.fillText(new Date().toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'}),W-M,90);g.textAlign='left';
+    g.fillStyle=renk;g.fillRect(M,112,W-2*M,4);y=136};
+  const alt=()=>{g.fillStyle='#8A958C';g.font=`400 15px ${FONT}`;g.fillText([f.ad,f.tel,f.yetkiNo&&'Yetki Belge No: '+f.yetkiNo].filter(Boolean).join(' · ')+' · Yeşil: satırdaki en uygun değer',M,H-30);g.textAlign='right';g.fillText('Sayfa '+sayfalar.length,W-M,H-30);g.textAlign='left'};
+  yeni();
+  // başlık satırı: fotoğraf + ilan başlığı
+  const FH=190;L.forEach((i,k)=>{const x=M+LW+k*CW+8,w=CW-16;g.fillStyle='#F4F7F2';yuvarlak(g,x,y,w,FH,12);g.fill();
+    const im=resimler[k];if(im){g.save();yuvarlak(g,x,y,w,FH,12);g.clip();const r=Math.max(w/im.naturalWidth,FH/im.naturalHeight);const dw=im.naturalWidth*r,dh=im.naturalHeight*r;g.drawImage(im,x+(w-dw)/2,y+(FH-dh)/2,dw,dh);g.restore()}
+    else if(logo)sigdir(g,logo,x+w*0.25,y+FH*0.25,w*0.5,FH*0.5);
+    g.fillStyle='#18211B';g.font=`700 19px ${FONT}`;yaz(g,i.baslik||'',x,y+FH+28,w,24,2)});
+  y+=FH+86;
+  const satirCiz=([ad,deger,iyi],z)=>{g.font=`400 18px ${FONT}`;const cells=deger.map(v=>satirla(g,String(v||'—'),CW-28).slice(0,3));const h=Math.max(RH,Math.max(...cells.map(c=>c.length))*24+16);
+    if(y+h>H-60){alt();yeni();y+=6}
+    if(z%2===0){g.fillStyle='#FAFBF9';g.fillRect(M,y,W-2*M,h)}
+    g.fillStyle='#5A665C';g.font=`600 17px ${FONT}`;yaz(g,ad,M+12,y+26,LW-24,22,2);
+    cells.forEach((c,k)=>{const x=M+LW+k*CW;if(iyi&&iyi[k]){g.fillStyle='#E4F2DC';g.fillRect(x+2,y+2,CW-4,h-4)}g.fillStyle=iyi&&iyi[k]?'#2B5618':(deger[k]?'#18211B':'#A0AAA2');g.font=`${iyi&&iyi[k]||z<3?700:400} 18px ${FONT}`;c.forEach((l,j)=>g.fillText(l,x+14,y+26+j*24))});
+    g.fillStyle='#E3E8E3';g.fillRect(M,y+h-1,W-2*M,1);y+=h};
+  satirlar.forEach(satirCiz);alt();return sayfalar}
+async function karsiPdfDosya(L){toast('PDF hazırlanıyor…');const sy=await karsiPdf(L);const ad=`ilan-karsilastirma-${tarihInput(Date.now())}.pdf`;return new File([await pdfOlustur(sy,'Ilan Karsilastirma')],ad,{type:'application/pdf'})}
 async function karsilastirSayfa(){
   const L=S.karsi.map(id=>ilanBul(id)).filter(Boolean);
   if(L.length<2){$('#app').innerHTML=iskelet('ilanlar',`<div class="toolbar"><a class="btn ghost" href="#/ilanlar">${IC.left} İlanlar</a></div><div class="empty"><b>Karşılaştırmak için en az 2 ilan seçin.</b><p>İlanlar listesinde <b>Karşılaştır</b> düğmesine basıp ilanlara dokunarak seçebilirsiniz.</p><a class="btn pri" href="#/ilanlar" id="kSecime">İlan seç</a></div>`);const k=$('#kSecime');if(k)k.onclick=()=>{S.karsiMod=true};return}
@@ -3297,7 +3329,7 @@ async function karsilastirSayfa(){
   const enKucuk=a=>{const v=a.filter(x=>x!=null);return v.length>1?Math.min(...v):null},enBuyuk=a=>{const v=a.filter(x=>x!=null);return v.length>1?Math.max(...v):null};
   const fMin=enKucuk(L.map(i=>i.fiyat)),mfMin=enKucuk(m2f),m2Max=enBuyuk(m2);
   const hucre=(v,iyi)=>`<td class="${iyi?'iyi':''}">${v==null||v===''?'<span class="muted">—</span>':esc(v)}</td>`;
-  const html=`<div class="toolbar"><a class="btn ghost" href="#/ilanlar">${IC.left} İlanlar</a><span style="flex:1"></span><button class="btn" id="kWa">${IC.wa} WhatsApp'ta gönder</button><button class="btn" id="kYaz">${IC.print} Yazdır</button></div>
+  const html=`<div class="toolbar"><a class="btn ghost" href="#/ilanlar">${IC.left} İlanlar</a><span style="flex:1"></span><button class="btn wa" id="kPdfG" style="background:#1FA855;border-color:#1FA855;color:#fff">${IC.wa} PDF olarak gönder</button><button class="btn" id="kWa">${IC.copy} Metin olarak gönder</button><button class="btn" id="kPdf">${IC.pdf} PDF indir</button><button class="btn" id="kYaz">${IC.print} Yazdır</button></div>
    <h1>İlan karşılaştırma</h1><p class="small muted" style="margin-top:-6px">Yeşil hücreler o satırdaki en uygun değeri gösterir.</p>
    <div class="ktablo-sar"><table class="ktablo"><thead><tr><th></th>${L.map(i=>{const k=kap[i.id];return `<th><a href="#/ilan/${i.id}" class="kbas"><div class="kph${k?'':' yok'}" style="${k?`background-image:url('${objUrl(k.thumb||k.blob)}')`:''}">${k?'':fotoYok()}</div><b>${esc(i.baslik)}</b></a><button class="btn ghost kcikar" data-kcik="${i.id}" title="Karşılaştırmadan çıkar">Çıkar</button></th>`}).join('')}</tr></thead>
     <tbody>
@@ -3314,7 +3346,14 @@ async function karsilastirSayfa(){
   $('#app').innerHTML=iskelet('ilanlar',html);
   $$('[data-kcik]').forEach(b=>b.onclick=()=>{S.karsi=S.karsi.filter(x=>x!==b.dataset.kcik);karsilastirSayfa()});
   $('#kEkle').onclick=()=>{S.karsiMod=true};$('#kTemizle').onclick=()=>{S.karsi=[];S.karsiMod=false;location.hash='#/ilanlar'};
-  $('#kYaz').onclick=()=>window.print();
+  $('#kPdf').onclick=async()=>{try{const f=await karsiPdfDosya(L);indir(f,f.name);toast('PDF indirildi')}catch(e){toast('PDF hazırlanamadı')}};
+  $('#kPdfG').onclick=async()=>{try{const f=await karsiPdfDosya(L);const txt=`Karşılaştırmanız için ${L.length} ilan. ${S.ayarlar.firma.ad||''}`;
+      if(mobil()&&navigator.canShare&&navigator.canShare({files:[f]}))await paylasGuvenli({files:[f],text:txt});
+      else{indir(f,f.name);window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');toast('PDF indirildi; WhatsApp\'ta sohbete ekleyin')}
+      for(const i of L){(i.gecmis=i.gecmis||[]).push({t:Date.now(),m:'Karşılaştırma PDF\'i olarak paylaşıldı'});await put('ilanlar',i)}}catch(e){if(e&&e.name!=='AbortError')toast('PDF hazırlanamadı')}};
+  $('#kYaz').onclick=async()=>{try{const f=await karsiPdfDosya(L);
+      if(mobil()&&navigator.canShare&&navigator.canShare({files:[f]})){toast('Paylaşım menüsünden "Yazdır"ı seçin');await paylasGuvenli({files:[f]})}
+      else{const u=URL.createObjectURL(f);const w=window.open(u,'_blank');if(!w){indir(f,f.name);toast('PDF indirildi; açıp yazdırın')}else setTimeout(()=>{try{w.print()}catch(e){}},1200)}}catch(e){if(e&&e.name!=='AbortError')toast('PDF hazırlanamadı')}};
   $('#kWa').onclick=()=>{const f=S.ayarlar.firma;const msj=`Karşılaştırmanız için ${L.length} ilan:\n\n`+L.map((i,k)=>{const o=kisaOzellikler(i).slice(0,5).map(x=>x[1]).join(' · ');return `${k+1}) ${i.baslik}\n${i.islem} ${(turBul(i.turId)||{}).ad||''} · ${fiyatYazi(i)}${m2f[k]?' · '+nf.format(m2f[k])+' TL/m²':''}\n${[i.mahalle,i.ilce,i.il].filter(Boolean).join(', ')}${o?'\n'+o:''}${i.yayin&&i.yayin.token?'\n'+linkAdresi(i.yayin.token):''}`}).join('\n\n')+`\n\n${f.ad||''}${f.yetkili?' · '+f.yetkili:''}${f.tel?' · '+f.tel:''}`;
     window.open('https://wa.me/?text='+encodeURIComponent(msj),'_blank')};
 }
@@ -3498,8 +3537,8 @@ async function pdfOlustur(sayfalar,baslik){
   obj(2,()=>ekle(`<< /Type /Pages /Kids [${kids.join(' ')}] /Count ${n} >>`));
   const bas=[...(baslik||'Ilan')].map(ch=>{const c=ch.charCodeAt(0);return c<128&&!/[()\\]/.test(ch)?ch:''}).join('');
   obj(3,()=>ekle(`<< /Title (${bas}) /Producer (Portfoy Defteri) >>`));
-  for(let k=0;k<n;k++){const p=4+k*3,ct=p+1,im=p+2;const cv=sayfalar[k];const cs=`q 595.28 0 0 841.89 0 0 cm /Im0 Do Q`;
-    obj(p,()=>ekle(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 ${im} 0 R >> >> /Contents ${ct} 0 R >>`));
+  for(let k=0;k<n;k++){const p=4+k*3,ct=p+1,im=p+2;const cv=sayfalar[k];const yt=cv.width>cv.height,PW=yt?841.89:595.28,PH=yt?595.28:841.89;const cs=`q ${PW} 0 0 ${PH} 0 0 cm /Im0 Do Q`;
+    obj(p,()=>ekle(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PW} ${PH}] /Resources << /XObject << /Im0 ${im} 0 R >> >> /Contents ${ct} 0 R >>`));
     obj(ct,()=>{ekle(`<< /Length ${cs.length} >>\nstream\n`);ekle(cs);ekle('\nendstream')});
     obj(im,()=>{ekle(`<< /Type /XObject /Subtype /Image /Width ${cv.width} /Height ${cv.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpg[k].length} >>\nstream\n`);ekle(jpg[k]);ekle('\nendstream')})}
   const top=4+n*3;const xref=boy;let x=`xref\n0 ${top}\n0000000000 65535 f \n`;for(let k=1;k<top;k++)x+=String(ofs[k]).padStart(10,'0')+' 00000 n \n';
@@ -3815,7 +3854,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.09.29-0935';
+const SURUM='2026.09.29-1347';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
