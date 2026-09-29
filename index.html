@@ -874,6 +874,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--brand);outline:none;b
 .linkbox{margin-top:12px;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--soft)}
 .panel h2 svg,.actions svg,.sheet svg,.toolbar svg{width:18px;height:18px;flex:0 0 auto}
 .sheet .opt svg{width:26px;height:26px}
+.plogo{max-width:62%;max-height:62%;object-fit:contain;opacity:.9}.plogo.b{max-width:46%;max-height:56%}
+.ph.yok,.lph.yok{background:#F4F7F2;display:grid;place-items:center}.noimg .plogo{max-width:80%;max-height:80%}
+.panel.empty .plogo{max-width:220px;max-height:120px;margin-bottom:8px}
 .lrows{display:flex;flex-direction:column;background:var(--card,#fff);border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .lrow{display:flex;gap:12px;padding:10px;border-bottom:1px solid var(--line);text-decoration:none;color:inherit;background:#fff}
 .lrow:last-child{border-bottom:0}.lrow:active{background:var(--soft)}
@@ -1165,17 +1168,18 @@ async function kapaklariYukle(ilanlar){
 }
 function kartOzet(ilan){const t=turBul(ilan.turId);if(!t)return [];const oz=ilan.ozellikler||{};
   return (FIELDS[t.ana]||[]).filter(f=>f.card&&oz[f.k]).map(f=>f.k.startsWith('m2')?nf.format(oz[f.k])+' m²':f.k==='kat'?oz[f.k]+(isNaN(oz[f.k])?'':'. kat'):f.k==='bolum'?oz[f.k]+' bölüm':oz[f.k])}
+const fotoYok=(buyuk)=>S.ayarlar.firma.logo?`<img class="plogo${buyuk?' b':''}" src="${S.ayarlar.firma.logo}" alt="">`:IC.home;
 const listeGorunum=()=>S.ayarlar.gorunum||(matchMedia('(max-width: 760px)').matches?'liste':'kart');
 function ilanSatir(i,kapak){const t=turBul(i.turId);const oz=kartOzet(i);
   return `<a class="lrow" href="#/ilan/${i.id}">
-    <div class="lph" style="${kapak?`background-image:url('${objUrl(kapak.thumb||kapak.blob)}')`:''}">${kapak?'':IC.home}</div>
+    <div class="lph${kapak?'':' yok'}" style="${kapak?`background-image:url('${objUrl(kapak.thumb||kapak.blob)}')`:''}">${kapak?'':fotoYok()}</div>
     <div class="lbd"><div class="lttl">${esc(i.baslik||'(Başlıksız ilan)')}</div>
       <div class="lmeta">${[i.islem+' '+(t?t.ad:''),...oz.slice(0,2)].map(esc).join(' · ')}</div>
       <div class="lmeta">${esc([i.mahalle,i.ilce].filter(Boolean).join(', '))}</div>
       <div class="lalt"><span class="lpr">${esc(fiyatYazi(i))}</span>${i.durum!=='Aktif'?`<span class="badge st-${i.durum}">${esc(durumYazi(i,true))}</span>`:''}${pfTip(i)!=='benim'?`<span class="small muted">${esc(pfAd(i))}</span>`:''}</div></div></a>`}
 function ilanKart(i,kapak){const t=turBul(i.turId);
   return `<a class="card" href="#/ilan/${i.id}">
-    <div class="ph" style="${kapak?`background-image:url('${objUrl(kapak.thumb||kapak.blob)}')`:''}">${kapak?'':IC.home}</div>
+    <div class="ph${kapak?'':' yok'}" style="${kapak?`background-image:url('${objUrl(kapak.thumb||kapak.blob)}')`:''}">${kapak?'':fotoYok(1)}</div>
     <div class="badges">${i.ornek?'<span class="badge b-ornek">Örnek</span>':''}<span class="badge b-islem">${esc(i.islem)}</span>${i.durum!=='Aktif'?`<span class="badge st-${i.durum}">${esc(durumYazi(i,true))}</span>`:''}</div>
     <div class="body">${pfEtiket(i)}<div class="price">${fiyatYazi(i)}</div>
     <div class="ttl">${esc(i.baslik||'(Başlıksız ilan)')}</div>
@@ -1253,7 +1257,7 @@ async function detay(id){
    <div>
     ${fotolar.length?`<div class="gallery" id="gal"><img id="galImg" src="${furl[0]}" alt="">${fotolar.length>1?`<button class="nav l" id="gl" aria-label="Önceki">${IC.left}</button><button class="nav r" id="gr" aria-label="Sonraki">${IC.right}</button>`:''}<span class="cnt" id="gc">1 / ${fotolar.length}</span><span class="kapakEt" id="gk">Kapak</span><button class="kapakYap" id="gky" hidden>★ Kapak yap</button></div>
       ${fotolar.length>1?`<div class="thumbs">${furl.map((u,k)=>`<img src="${u}" data-k="${k}" class="${k?'':'on'}" alt="">`).join('')}</div>`:''}`
-     :`<div class="panel empty">${IC.home}<b>Fotoğraf eklenmemiş</b><a href="#/duzenle/${i.id}">Fotoğraf ekle</a></div>`}
+     :`<div class="panel empty">${fotoYok(1)}<b>Fotoğraf eklenmemiş</b><a href="#/duzenle/${i.id}">Fotoğraf ekle</a></div>`}
     <div class="panel" style="margin-top:12px">
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">${i.ornek?'<span class="badge b-ornek">Örnek ilan</span>':''}<span class="badge b-islem">${esc(i.islem)}</span><span class="badge st-${i.durum}">${esc(durumYazi(i))}</span></div>
       <div class="price" style="font-size:30px">${fiyatYazi(i)}</div>
@@ -1365,7 +1369,7 @@ async function copSayfa(){
   const html=`<div class="toolbar"><a class="btn ghost" href="#/ilanlar">${IC.left} İlanlar</a></div><h1>Çöp kutusu</h1>
     <p class="muted small" style="margin-top:-6px">Silinen ilanlar ${COP_GUN} gün burada bekler, sonra fotoğraf ve belgeleriyle birlikte kendiliğinden kalıcı olarak silinir. Bu sürede geri alabilirsiniz.</p>
     ${L_.length?`<div class="panel">${L_.map(i=>{const kalan=Math.max(0,COP_GUN-Math.floor((Date.now()-i.silindi)/864e5));const k=kap[i.id];
-      return `<div class="msat">${k?`<img src="${objUrl(k.thumb||k.blob)}" alt="">`:`<div class="noimg">${IC.home}</div>`}<div class="grow"><b>${esc(i.baslik||'')}</b>
+      return `<div class="msat">${k?`<img src="${objUrl(k.thumb||k.blob)}" alt="">`:`<div class="noimg">${fotoYok()}</div>`}<div class="grow"><b>${esc(i.baslik||'')}</b>
         <div class="small">${esc(fiyatYazi(i))} · ${esc(i.islem)} ${esc((turBul(i.turId)||{}).ad||'')} · ${esc([i.mahalle,i.ilce].filter(Boolean).join(', '))}</div>
         <div class="small muted">${gun(i.silindi)} tarihinde silindi · ${kalan?kalan+' gün sonra kalıcı olarak silinecek':'bugün kalıcı olarak silinecek'}</div>
         <div class="actions" style="margin-top:6px"><button class="btn pri" data-geri="${i.id}">Geri al</button><button class="btn danger" data-ksil="${i.id}">Kalıcı sil</button></div></div></div>`}).join('')}</div>
@@ -1994,7 +1998,7 @@ function musteriListe(){
 }
 
 function ilanSatiri(i,ek){const t=turBul(i.turId)||{};const k=(S.kapak||{})[i.id];
-  return `<div class="msat">${k?`<img src="${objUrl(k.thumb||k.blob)}" alt="">`:`<div class="noimg">${IC.home}</div>`}<div class="grow"><a href="#/ilan/${i.id}" style="text-decoration:none;color:inherit"><b>${esc(i.baslik||'')}</b></a>
+  return `<div class="msat">${k?`<img src="${objUrl(k.thumb||k.blob)}" alt="">`:`<div class="noimg">${fotoYok()}</div>`}<div class="grow"><a href="#/ilan/${i.id}" style="text-decoration:none;color:inherit"><b>${esc(i.baslik||'')}</b></a>
     <div class="small"><span style="color:var(--brand-deep);font-weight:700">${esc(fiyatYazi(i))}</span> · ${esc(i.islem)} ${esc(t.ad||'')} · ${esc([i.mahalle,i.ilce].filter(Boolean).join(', '))}</div>${ek||''}</div></div>`}
 
 async function musteriDetay(id){
@@ -2447,7 +2451,7 @@ async function ofisListe(){
     <input type="search" class="grow" id="oq" placeholder="Ara: başlık, mahalle, danışman…" value="${esc(F.q)}"></div>
    <p class="small muted">${esc(S.ofis.ofis.ad)} · ekibin paylaştığı ${L.length} ilan${S.ofis.zaman?' · güncelleme '+tarih(S.ofis.zaman):''}</p>
    ${L.length?`<div class="cards">${L.map(r=>{const v=r.veri,u=uyeBul(r.owner)||{};return `<a class="card" href="#/ofis-ilan/${encodeURIComponent(r.ilan_id)}">
-     <div class="ph" data-oresim="${esc((v.fotolar||[])[0]||'')}">${IC.home}</div>
+     <div class="ph yok" data-oresim="${esc((v.fotolar||[])[0]||'')}">${fotoYok(1)}</div>
      <div class="badges"><span class="badge b-islem">${esc(v.islem)}</span>${r.seviye==='tam'?'<span class="badge" style="background:var(--blue)">Tam</span>':''}${v.durum&&v.durum!=='Aktif'?`<span class="badge st-${esc(v.durum)}">${esc(v.durum)}</span>`:''}</div>
      <div class="body"><div class="pf ekip"><i></i>${esc(u.ad||'Ekip')}</div><div class="price">${esc(v.fiyatYazi||'')}</div><div class="ttl">${esc(v.baslik||'')}</div>
      <div class="specs"><span>${esc(v.turAd||'')}</span>${(v.ozellikListesi||[]).filter(x=>/^(m²|m² \(Brüt\)|Oda Sayısı)$/.test(x[0])).map(x=>`<span>${esc(x[1])}${/m²/.test(x[0])?' m²':''}</span>`).join('')}</div>
@@ -2456,7 +2460,7 @@ async function ofisListe(){
   $('#app').innerHTML=iskelet('ilanlar',html);
   const k=$('#oKim');if(k)k.onchange=e=>{F.kim=e.target.value;ofisListe()};
   let qt;const q=$('#oq');if(q)q.oninput=e=>{clearTimeout(qt);qt=setTimeout(()=>{F.q=e.target.value;const pos=e.target.selectionStart;ofisListe().then(()=>{const x=$('#oq');x.focus();x.setSelectionRange(pos,pos)})},250)};
-  for(const d of $$('[data-oresim]')){const yol=d.dataset.oresim;if(!yol)continue;ofisResimUrl(yol).then(u=>{d.style.backgroundImage=`url('${u}')`;d.innerHTML=''}).catch(()=>{})}
+  for(const d of $$('[data-oresim]')){const yol=d.dataset.oresim;if(!yol)continue;ofisResimUrl(yol).then(u=>{d.style.backgroundImage=`url('${u}')`;d.innerHTML='';d.classList.remove('yok')}).catch(()=>{})}
 }
 function ofisIlanMetni(v,sahipAd){const f=S.ayarlar.firma;const L_=[`🏡 *${v.islem} ${v.turAd}* | ${v.fiyatYazi}`,`*${v.baslik||''}*`,`📍 ${[v.mahalle&&v.mahalle+' Mah.',v.ilce,v.il].filter(Boolean).join(', ')}`,''];
   (v.ozellikListesi||[]).slice(0,14).forEach(([a,b])=>L_.push(`• ${a}: ${b}`));if(v.aciklama)L_.push('',String(v.aciklama).trim().slice(0,700));
@@ -3441,7 +3445,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.09.29-0430';
+const SURUM='2026.09.29-0438';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
