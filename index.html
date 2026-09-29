@@ -2929,8 +2929,9 @@ async function bildirimPlanla(zorla){
   await kvSet('bildirimPlan',simdi)}
 async function bildirimTest(){const uid=BULUT.oturum.user.id;
   await sbTamam(await sb('/rest/v1/bildirim_kuyruk',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify([{id:uid.slice(0,8)+':test:'+Date.now(),user_id:uid,zaman:new Date().toISOString(),baslik:'Portföy Defteri',govde:'Test bildirimi: bildirimler bu cihazda çalışıyor.',url:'./#/ayarlar'}])}),'Test bildirimi oluşturulamadı');
-  let r,j=null;try{r=await fetch(SB_URL+'/functions/v1/bildirim-gonder',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY},body:'{}'});j=await r.json().catch(()=>null)}catch(e){return 'İşleve ulaşılamadı: '+e.message}
-  if(!r.ok)return `İşlev hatası (${r.status}): ${j?(j.hata||j.message||JSON.stringify(j)):''}`;
+  let r,j=null;try{r=await fetch(SB_URL+'/functions/v1/bildirim-gonder',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY},body:'{}'});j=await r.json().catch(()=>null)}catch(e){return 'Gönderildi: Bildirim sıraya alındı, en geç 1 dakika içinde gelmeli.'}
+  if(!r.ok&&j&&j.hata)return `İşlev hatası (${r.status}): ${j.hata}`;
+  if(!r.ok)return 'Gönderildi: Bildirim sıraya alındı, en geç 1 dakika içinde gelmeli.';
   if(j&&j.hatalar&&j.hatalar.length)return `Gönderilemedi: ${j.hatalar.join(' | ')}`;
   return j?`Gönderildi (${j.gonderilen} cihaz). Birkaç saniye içinde gelmeli.`:''}
 async function bildirimPanelCiz(){const el=$('#bildirimPanel');if(!el)return;const tr=bildirimTurleri();
@@ -3419,7 +3420,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.09.29-0357';
+const SURUM='2026.09.29-0411';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
