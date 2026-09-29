@@ -2929,7 +2929,10 @@ async function bildirimPlanla(zorla){
   await kvSet('bildirimPlan',simdi)}
 async function bildirimTest(){const uid=BULUT.oturum.user.id;
   await sbTamam(await sb('/rest/v1/bildirim_kuyruk',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify([{id:uid.slice(0,8)+':test:'+Date.now(),user_id:uid,zaman:new Date().toISOString(),baslik:'Portföy Defteri',govde:'Test bildirimi: bildirimler bu cihazda çalışıyor.',url:'./#/ayarlar'}])}),'Test bildirimi oluşturulamadı');
-  try{await fetch(SB_URL+'/functions/v1/bildirim-gonder',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY},body:'{}'})}catch(e){}}
+  let r,j=null;try{r=await fetch(SB_URL+'/functions/v1/bildirim-gonder',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY},body:'{}'});j=await r.json().catch(()=>null)}catch(e){return 'İşleve ulaşılamadı: '+e.message}
+  if(!r.ok)return `İşlev hatası (${r.status}): ${j?(j.hata||j.message||JSON.stringify(j)):''}`;
+  if(j&&j.hatalar&&j.hatalar.length)return `Gönderilemedi: ${j.hatalar.join(' | ')}`;
+  return j?`Gönderildi (${j.gonderilen} cihaz). Birkaç saniye içinde gelmeli.`:''}
 async function bildirimPanelCiz(){const el=$('#bildirimPanel');if(!el)return;const tr=bildirimTurleri();
   const acik=await kvGet('bildirimAcik');const sub=acik&&await bildirimAboneligi().catch(()=>null);const durum=!BULUT.oturum?'Bulut girişi gerekli':!bildirimDestek()?'Bu tarayıcıda desteklenmiyor':sub&&Notification.permission==='granted'?'Açık':'Kapalı';
   el.innerHTML=`<h2>Telefon bildirimleri</h2><p class="small muted" style="margin-top:-6px">Program kapalıyken de randevu, opsiyon bitişi, süreç adımı ve sözleşme bitişleri için telefonunuza bildirim gelir. Her cihazda ayrı açılır.${iosMu()?' iPhone’da programı ana ekrandaki simgeden açmış olmanız gerekir.':''}</p>
@@ -2939,7 +2942,7 @@ async function bildirimPanelCiz(){const el=$('#bildirimPanel');if(!el)return;con
     <p class="small" id="bdMsj" style="min-height:1.2em;color:var(--danger)"></p>`;
   const msj=t=>{$('#bdMsj').textContent=t};
   const a=$('#bdAc');if(a)a.onclick=async()=>{a.disabled=true;a.textContent='Açılıyor…';try{await bildirimAc();toast('Bildirimler açıldı');bildirimPanelCiz()}catch(e){msj(e.message||String(e));a.disabled=false;a.textContent='Bu cihazda bildirimleri aç'}};
-  const t=$('#bdTest');if(t)t.onclick=async()=>{t.disabled=true;try{await bildirimTest();toast('Test bildirimi gönderildi; birkaç saniye içinde gelmeli')}catch(e){msj(e.message)}t.disabled=false};
+  const t=$('#bdTest');if(t)t.onclick=async()=>{t.disabled=true;msj('Gönderiliyor…');try{const sonuc=await bildirimTest();msj(sonuc||'');$('#bdMsj').style.color=/^Gönderildi/.test(sonuc)?'var(--brand-deep)':'var(--danger)'}catch(e){msj(e.message)}t.disabled=false};
   const k=$('#bdKapat');if(k)k.onclick=async()=>{await bildirimKapat();toast('Bu cihazda bildirimler kapatıldı');bildirimPanelCiz()};
   $$('[data-bdt]').forEach(c=>c.onchange=async()=>{S.ayarlar.bildirim={...bildirimTurleri(),[c.dataset.bdt]:c.checked};await ayarKaydet();bildirimPlanla().catch(()=>{})})}
 
@@ -3416,7 +3419,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.09.28-2058';
+const SURUM='2026.09.29-0357';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
