@@ -874,6 +874,15 @@ input:focus,select:focus,textarea:focus{border-color:var(--brand);outline:none;b
 .linkbox{margin-top:12px;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--soft)}
 .panel h2 svg,.actions svg,.sheet svg,.toolbar svg{width:18px;height:18px;flex:0 0 auto}
 .sheet .opt svg{width:26px;height:26px}
+.lrows{display:flex;flex-direction:column;background:var(--card,#fff);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.lrow{display:flex;gap:12px;padding:10px;border-bottom:1px solid var(--line);text-decoration:none;color:inherit;background:#fff}
+.lrow:last-child{border-bottom:0}.lrow:active{background:var(--soft)}
+.lph{flex:0 0 112px;height:88px;border-radius:8px;background:var(--soft) center/cover no-repeat;display:grid;place-items:center;color:#9FB09A}.lph svg{width:30px;height:30px}
+.lbd{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.lttl{font-weight:700;font-size:14.5px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.lmeta{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lalt{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:auto}.lpr{font-weight:800;color:var(--brand-deep);font-size:15.5px}
+.lalt .badge{font-size:10.5px;padding:1px 7px}
 .shsat{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:12px 2px;font:inherit;color:inherit;cursor:pointer}
 .shsat:last-child{border-bottom:0}.shsat:disabled{opacity:.5;cursor:default}
 .shsat .shl{flex:0 0 38%;font-size:13px;color:var(--muted);font-weight:600}.shsat .shv{flex:1;min-width:0;overflow-wrap:anywhere}
@@ -1156,6 +1165,14 @@ async function kapaklariYukle(ilanlar){
 }
 function kartOzet(ilan){const t=turBul(ilan.turId);if(!t)return [];const oz=ilan.ozellikler||{};
   return (FIELDS[t.ana]||[]).filter(f=>f.card&&oz[f.k]).map(f=>f.k.startsWith('m2')?nf.format(oz[f.k])+' m²':f.k==='kat'?oz[f.k]+(isNaN(oz[f.k])?'':'. kat'):f.k==='bolum'?oz[f.k]+' bölüm':oz[f.k])}
+const listeGorunum=()=>S.ayarlar.gorunum||(matchMedia('(max-width: 760px)').matches?'liste':'kart');
+function ilanSatir(i,kapak){const t=turBul(i.turId);const oz=kartOzet(i);
+  return `<a class="lrow" href="#/ilan/${i.id}">
+    <div class="lph" style="${kapak?`background-image:url('${objUrl(kapak.thumb||kapak.blob)}')`:''}">${kapak?'':IC.home}</div>
+    <div class="lbd"><div class="lttl">${esc(i.baslik||'(Başlıksız ilan)')}</div>
+      <div class="lmeta">${[i.islem+' '+(t?t.ad:''),...oz.slice(0,2)].map(esc).join(' · ')}</div>
+      <div class="lmeta">${esc([i.mahalle,i.ilce].filter(Boolean).join(', '))}</div>
+      <div class="lalt"><span class="lpr">${esc(fiyatYazi(i))}</span>${i.durum!=='Aktif'?`<span class="badge st-${i.durum}">${esc(durumYazi(i,true))}</span>`:''}${pfTip(i)!=='benim'?`<span class="small muted">${esc(pfAd(i))}</span>`:''}</div></div></a>`}
 function ilanKart(i,kapak){const t=turBul(i.turId);
   return `<a class="card" href="#/ilan/${i.id}">
     <div class="ph" style="${kapak?`background-image:url('${objUrl(kapak.thumb||kapak.blob)}')`:''}">${kapak?'':IC.home}</div>
@@ -1197,12 +1214,13 @@ async function liste(mod){
     <select id="fIslem" style="width:auto"><option value="">Tüm işlemler</option>${[...new Set(Object.values(ISLEMLER).flat())].map(x=>`<option ${F.islem===x?'selected':''}>${x}</option>`).join('')}</select>
     <select id="fAna" style="width:auto"><option value="">Tüm kategoriler</option>${Object.entries(ANA).map(([k,v])=>`<option value="${k}" ${F.ana===k?'selected':''}>${v}</option>`).join('')}</select>
     <select id="fSira" style="width:auto">${[['yeni','En yeni'],['guncel','Son güncellenen'],['artan','Fiyat: düşükten yükseğe'],['azalan','Fiyat: yüksekten düşüğe']].map(([k,v])=>`<option value="${k}" ${F.sirala===k?'selected':''}>${v}</option>`).join('')}</select>
-    <span class="muted small">${L.length} ilan</span><a class="btn ghost" href="#/harita" style="margin-left:auto">${IC.map} Haritada gör</a>
+    <span class="muted small">${L.length} ilan</span><span style="margin-left:auto;display:inline-flex;gap:4px"><button class="btn ghost" id="gorG" title="Liste / Kart görünümü" style="min-height:36px;padding:4px 10px">${listeGorunum()==='liste'?'▦ Kart':'☰ Liste'}</button><a class="btn ghost" href="#/harita" style="min-height:36px;padding:4px 10px">${IC.map} Harita</a></span>
   </div>
-  ${L.length?`<div class="cards">${L.map(i=>ilanKart(i,kap[i.id])).join('')}</div>`:
+  ${L.length?(listeGorunum()==='liste'?`<div class="lrows">${L.map(i=>ilanSatir(i,kap[i.id])).join('')}</div>`:`<div class="cards">${L.map(i=>ilanKart(i,kap[i.id])).join('')}</div>`):
    S.ilanlar.length?`<div class="empty"><b>Bu filtreye uyan ilan yok.</b>Filtreleri değiştirin ya da aramayı temizleyin.</div>`:
    `<div class="empty"><b>Henüz ilan yok.</b><p>İlk ilanınızı ekleyerek başlayın.</p><a class="btn pri" href="#/ekle">${IC.plus} İlan ekle</a></div>`}`;
   $('#app').innerHTML=iskelet(mod==='arsiv'?'arsiv':'ilanlar',html);
+  {const gg=$('#gorG');if(gg)gg.onclick=async()=>{S.ayarlar.gorunum=listeGorunum()==='liste'?'kart':'liste';await ayarKaydet(true);ciz()}}
   $$('#sekme button').forEach(b=>b.onclick=()=>{const k=b.dataset.k;if(k==='ofis'){location.hash='#/ofis';return}if(k==='cop'){location.hash='#/cop';return}if(k==='arsiv'){location.hash='#/arsiv';return}F.sekme=k;if(mod==='arsiv')location.hash='#/ilanlar';else ciz()});
   let qt;$('#q').oninput=e=>{clearTimeout(qt);qt=setTimeout(async()=>{F.q=e.target.value;const pos=e.target.selectionStart;await liste(mod);const q=$('#q');q.focus();q.setSelectionRange(pos,pos)},250)};
   $('#fIslem').onchange=e=>{F.islem=e.target.value;liste(mod)};
@@ -3423,7 +3441,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.09.29-0423';
+const SURUM='2026.09.29-0430';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
