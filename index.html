@@ -1867,7 +1867,7 @@ function authHata(j){const m=(j&&(j.error_code||j.code||j.error||j.msg||j.messag
   if(/invalid_credentials|Invalid login/i.test(t))return 'E-posta veya şifre yanlış.';
   if(/email_not_confirmed|not confirmed/i.test(t))return 'E-posta adresi onaylanmamış. Gelen onay e-postasındaki bağlantıya tıklayın.';
   if(/already|exists|registered/i.test(t))return 'Bu e-postayla zaten bir hesap var. "Giriş yap"ı kullanın.';
-  if(/signup.*disabled|Signups not allowed/i.test(t))return 'Yeni hesap açma kapalı. Mevcut hesabınızla giriş yapın.';
+  if(/signup.*disabled|Signups not allowed/i.test(t))return 'Hesapları ofis yöneticisi açar (Ayarlar > Ofis ve ekip > Ekibe kişi ekle). Hesabınız açıldıysa e-posta ve şifrenizle Giriş yap deyin.';
   if(/weak|at least|password/i.test(t))return 'Şifre en az 6 karakter olmalı.';
   return 'İşlem yapılamadı: '+(j&&(j.msg||j.message||j.error_description||j.error)||'bilinmeyen hata')}
 async function authIstek(yol,govde){const r=await fetch(SB_URL+'/auth/v1/'+yol,{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify(govde)});
@@ -2004,15 +2004,16 @@ async function gonder(){
 function bulutPanelCiz(){const el=$('#bulutDurum');if(!el)return;const o=BULUT.oturum;
   if(!o){el.innerHTML=`<p class="small muted" style="margin-top:-6px">Açınca ilanlarınız, fotoğraflarınız ve ayarlarınız buluta yedeklenir; telefon ve bilgisayar aynı hesapla birbirini görür. İnternet yokken çalışmaya devam edersiniz, bağlantı gelince eşitlenir.</p>
     <div class="grid c2"><label class="f"><span>E-posta</span><input type="email" id="bE" autocomplete="username" value="${esc(S.ayarlar.firma.eposta||'')}"></label><label class="f"><span>Şifre</span><input type="password" id="bS" autocomplete="current-password"></label></div>
-    <div class="actions" style="margin-top:10px"><button class="btn pri" id="bGiris">Giriş yap</button><button class="btn" id="bHesap">Hesap oluştur</button><button class="btn ghost" id="bUnut">Şifremi unuttum</button></div>
+    <div class="actions" style="margin-top:10px"><button class="btn pri" id="bGiris">Giriş yap</button><button class="btn ghost" id="bUnut">Şifremi unuttum</button></div>
+    <p class="small muted" style="margin:8px 0 0">Hesabınız yok mu? Ofis yöneticiniz <b>Ayarlar > Ofis ve ekip > Ekibe kişi ekle</b> bölümünden sizin için hesap açar ve giriş bilgilerinizi iletir.</p>
     <p class="small muted">İlk cihazda bir kez "Hesap oluştur", diğer cihazlarda aynı bilgilerle "Giriş yap" deyin.</p><p class="small" id="bMesaj" style="color:var(--danger)"></p>`;
     const calis=async(fn,b)=>{const e=$('#bE').value.trim(),s_=$('#bS').value;if(!e||!s_){$('#bMesaj').textContent='E-posta ve şifreyi yazın.';return}b.disabled=true;$('#bMesaj').textContent='';
       try{await fn(e,s_);toast('Bulut açıldı, eşitleniyor…');bulutPanelCiz();ofisPanelCiz()}catch(x){$('#bMesaj').textContent=x.message}finally{b.disabled=false}};
     $('#bUnut').onclick=async()=>{const e=$('#bE').value.trim();if(!e){$('#bMesaj').textContent='Önce e-posta adresinizi yazın.';return}
-      try{const r=await fetch(SB_URL+'/auth/v1/recover?redirect_to='+encodeURIComponent(location.origin+location.pathname),{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({email:e})});
-        if(!r.ok)throw new Error(authHata(await r.json().catch(()=>({}))));$('#bMesaj').style.color='var(--brand-deep)';$('#bMesaj').textContent='Şifre yenileme bağlantısı e-postanıza gönderildi. Bağlantıyı bu cihazda açın.'}
+      try{const r=await fetch(SB_URL+'/auth/v1/recover?redirect_to='+encodeURIComponent('https://surextr.github.io/portfoydefteri/'),{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({email:e})});
+        if(!r.ok)throw new Error(authHata(await r.json().catch(()=>({}))));$('#bMesaj').style.color='var(--brand-deep)';$('#bMesaj').textContent='Şifre yenileme bağlantısı e-postanıza gönderildi. Bağlantı programın internet adresinde (surextr.github.io) açılır; orada yeni şifrenizi belirleyin, sonra bu ekrandan yeni şifreyle giriş yapın.'}
       catch(x){$('#bMesaj').textContent=x.message}};
-    $('#bGiris').onclick=e=>calis(girisYap,e.target);$('#bHesap').onclick=e=>calis(hesapAc,e.target);return}
+    $('#bGiris').onclick=e=>calis(girisYap,e.target);return}
   kvGet('sonEsitleme').then(async t=>{if(!document.body.contains(el))return;const n=await bekleyenSayisi();if(!document.body.contains(el))return;const eks=Object.keys((await kvGet('eksikDosyalar'))||{}).length;
     el.innerHTML=`<table class="kv"><tr><td>Hesap</td><td>${esc(o.user.email)}</td></tr><tr><td>Son eşitleme</td><td>${t?tarih(t):'Henüz yok'}</td></tr>
       <tr><td>Durum</td><td>${BULUT.calisiyor?'Eşitleniyor…':BULUT.hata?`<span style="color:var(--danger)">${esc(BULUT.hata)}</span>`:n?n+' kayıt gönderilmeyi bekliyor':'Her şey eşitlendi'}${eks?` · ${eks} dosya indirilecek`:''}</td></tr></table>
@@ -3854,7 +3855,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.09.29-1347';
+const SURUM='2026.10.02-0825';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
