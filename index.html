@@ -776,7 +776,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--brand);outline:none;b
 .empty b{display:block;color:var(--ink);font-size:17px;margin-bottom:6px}
 
 /* detail */
-.gallery{position:relative;background:#111;border-radius:var(--r-lg);overflow:hidden;aspect-ratio:4/3;max-height:560px;width:100%}
+.gallery{position:relative;background:#EEF1EC;border-radius:var(--r-lg);overflow:hidden;aspect-ratio:4/3;max-height:560px;width:100%}
 .gallery img{width:100%;height:100%;object-fit:contain;display:block}
 .gallery .nav{position:absolute;top:50%;transform:translateY(-50%);border:0;background:rgba(255,255,255,.85);width:40px;height:40px;border-radius:50%;cursor:pointer;display:grid;place-items:center}
 .gallery .nav.l{left:10px}.gallery .nav.r{right:10px}
@@ -784,7 +784,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--brand);outline:none;b
 .thumbs{display:flex;gap:6px;overflow-x:auto;padding:8px 0}
 .thumbs img{width:72px;height:54px;object-fit:cover;border-radius:6px;cursor:pointer;opacity:.6;flex:0 0 auto}
 .thumbs img.on{opacity:1;outline:2px solid var(--brand)}
-.dgrid{display:grid;gap:16px;grid-template-columns:1fr}
+.dgrid{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+.dgrid>*{min-width:0}
 @media(min-width:960px){.dgrid{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}}
 .kv{width:100%;border-collapse:collapse}
 .kv td{padding:8px 0;border-bottom:1px solid var(--line);vertical-align:top}
@@ -3909,7 +3910,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.10.02-0856';
+const SURUM='2026.10.02-0930';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
