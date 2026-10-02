@@ -1122,7 +1122,7 @@ async function basla(){
   window.addEventListener('hashchange',ciz);
   window.addEventListener('online',()=>{syncCiz();esitle()});window.addEventListener('offline',syncCiz);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)esitle()});setInterval(()=>esitle(),90000);
-  BULUT.oturum=await kvGet('oturum');if(BULUT.oturum&&!(await kvGet('sahipId')))await kvSet('sahipId',BULUT.oturum.user.id);S.ofis=BULUT.oturum?(await kvGet('ofisOnbellek'))||null:null;
+  BULUT.oturum=await kvGet('oturum');if(BULUT.oturum&&!(await kvGet('sahipId')))await kvSet('sahipId',BULUT.oturum.user.id);S.ofis=BULUT.oturum?(await kvGet('ofisOnbellek'))||null:null;S.sistemYonetici=BULUT.oturum?!!(await kvGet('sistemYonetici')):false;
   if(/type=recovery/.test(location.hash)&&/access_token=/.test(location.hash)){await sifreYenileEkrani();return}
   setTimeout(async()=>{await copTemizle();esitle()},800);
   ciz();
@@ -1867,12 +1867,13 @@ function authHata(j){const m=(j&&(j.error_code||j.code||j.error||j.msg||j.messag
   if(/invalid_credentials|Invalid login/i.test(t))return 'E-posta veya şifre yanlış.';
   if(/email_not_confirmed|not confirmed/i.test(t))return 'E-posta adresi onaylanmamış. Gelen onay e-postasındaki bağlantıya tıklayın.';
   if(/already|exists|registered/i.test(t))return 'Bu e-postayla zaten bir hesap var. "Giriş yap"ı kullanın.';
+  if(/user_banned|banned/i.test(t))return 'Bu hesabın erişimi kapatılmış. Hesabı açan kişiyle görüşün.';
   if(/signup.*disabled|Signups not allowed/i.test(t))return 'Hesapları ofis yöneticisi açar (Ayarlar > Ofis ve ekip > Ekibe kişi ekle). Hesabınız açıldıysa e-posta ve şifrenizle Giriş yap deyin.';
   if(/weak|at least|password/i.test(t))return 'Şifre en az 6 karakter olmalı.';
   return 'İşlem yapılamadı: '+(j&&(j.msg||j.message||j.error_description||j.error)||'bilinmeyen hata')}
 async function authIstek(yol,govde){const r=await fetch(SB_URL+'/auth/v1/'+yol,{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify(govde)});
   const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(authHata(j));return j}
-async function oturumKaydet(j){BULUT.oturum={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:Date.now()+((j.expires_in||3600)-60)*1000,user:{id:j.user.id,email:j.user.email}};await kvSet('oturum',BULUT.oturum)}
+async function oturumKaydet(j){BULUT.oturum={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:Date.now()+((j.expires_in||3600)-60)*1000,user:{id:j.user.id,email:j.user.email,user_metadata:j.user.user_metadata||{}}};await kvSet('oturum',BULUT.oturum)}
 async function girisYap(eposta,sifre){await oturumKaydet(await authIstek('token?grant_type=password',{email:eposta,password:sifre}));await girisSonrasi()}
 async function hesapAc(eposta,sifre){const j=await authIstek('signup',{email:eposta,password:sifre});
   if(!j.access_token)throw new Error('Hesap açıldı ama e-posta onayı bekleniyor. E-postanızdaki bağlantıya tıklayın, sonra "Giriş yap" deyin. (Supabase ayarlarında "Confirm email" kapatılırsa bu adım gerekmez.)');
@@ -1888,13 +1889,15 @@ async function sifreYenileEkrani(){
       const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(authHata(j));
       await oturumKaydet({access_token:tok,refresh_token:ref,expires_in:sure,user:j});toast('Şifreniz yenilendi');await girisSonrasi();ciz()}
     catch(x){$('#ye').textContent=x.message||'Şifre kaydedilemedi. Bağlantının süresi dolmuş olabilir, tekrar isteyin.'}}}
-async function oturumKapat(){BULUT.oturum=null;S.ofis=null;await kvSet('ofisOnbellek',null);await kvSet('oturum',null);await kvSet('sonCekim',null);BULUT.hata='';syncCiz()}
+async function oturumKapat(){BULUT.oturum=null;S.ofis=null;S.sistemYonetici=false;await kvSet('sistemYonetici',false);await kvSet('ofisOnbellek',null);await kvSet('oturum',null);await kvSet('sonCekim',null);BULUT.hata='';syncCiz()}
 async function cihazVerisiniSil(){
   for(const st of ['ilanlar','dosyalar','musteriler','randevular','notlar','ygbelgeler'])await tx(st,'readwrite',s0=>s0.clear());
   for(const k of ['silinenler','sonCekim','eksikDosyalar','sonEsitleme'])await kvSet(k,null);
   const eski=S.ayarlar;S.ayarlar={firma:{ad:'',logo:'',yetkili:'',tel:'',whatsapp:'',eposta:'',adres:'',web:'',yetkiNo:''},renk:'#3C7922',varsayilanIl:eski.varsayilanIl||'Antalya',konumGosterim:'yaklasik',turler:DEF_TURLER.map(t=>({...t})),sonYedek:null,sayac:0,ekip:[],disOfisler:[],ornekEklendi:true};
   await kvSet('ayarlar',S.ayarlar);await ilanlariYukle();S.musteriler=[];S.randevular=[];S.notlar=[];S.yg=[];S.ofis=null;await kvSet('ofisOnbellek',null);temaUygula()}
 async function girisSonrasi(){BULUT.hata='';
+  {const md=(BULUT.oturum&&BULUT.oturum.user&&BULUT.oturum.user.user_metadata)||{};const f=S.ayarlar.firma;let d=false;if(md.firma&&!f.ad){f.ad=md.firma;d=true}if(md.ad&&!f.yetkili){f.yetkili=md.ad;d=true}if(d)await ayarKaydet(true)}
+  sistemYoneticisiKontrol().then(()=>{if($('#bulutDurum'))ciz()});
   {const uid=BULUT.oturum.user.id,onceki=await kvGet('sahipId');const gercek=(await all('ilanlar')).filter(i=>!i.ornek).length+(await all('musteriler')).length;
     if(onceki&&onceki!==uid){if(!confirm('Bu cihazda başka bir hesaba ait veriler var. Devam ederseniz bu cihazdaki veriler silinecek ve sizin hesabınızın verileri yüklenecek. (Diğer hesabın buluttaki verileri etkilenmez.)\n\nDevam edilsin mi?')){await oturumKapat();throw new Error('Giriş iptal edildi.')}await cihazVerisiniSil()}
     else if(!onceki&&gercek&&!confirm(`Bu cihazda daha önce girilmiş ${gercek} kayıt (ilan/müşteri) var. Bunlar hesabınıza (${BULUT.oturum.user.email}) aktarılsın mı?\n\nTamam: aktar · İptal: bu cihazdan sil`))await cihazVerisiniSil();
@@ -1933,6 +1936,7 @@ async function esitle(){
     await eksikDosyalariIndir();
     await yayinlariGuncelle();
     try{await bildirimPlanla()}catch(e){console.warn('bildirim',e)}
+    if(S.sistemYonetici===undefined||Math.random()<0.2)sistemYoneticisiKontrol();
     try{await ofisYukle();if(await ofisDuzenlemeleriUygula())degisti=true;await ofisYayinlariGuncelle();await ofisTalepleriYayinla()}catch(e){console.warn('ofis',e)}
     if(await copTemizle())degisti=true;
     BULUT.hata='';await kvSet('sonEsitleme',Date.now());
@@ -3359,6 +3363,40 @@ async function karsilastirSayfa(){
     window.open('https://wa.me/?text='+encodeURIComponent(msj),'_blank')};
 }
 
+
+/* ========== DENEME (BAĞIMSIZ) KULLANICILAR - sistem yöneticisi ========== */
+async function sistemYoneticisiKontrol(){if(!BULUT.oturum||!navigator.onLine)return;try{const r=await sbRpc('sistem_yoneticisi_mi',{});S.sistemYonetici=r===true;await kvSet('sistemYonetici',S.sistemYonetici)}catch(e){}}
+async function yonetimPanelCiz(){const el=$('#yonetimPanel');if(!el)return;
+  if(!S.sistemYonetici){el.remove();return}
+  el.innerHTML=`<h2>Deneme kullanıcıları</h2><p class="small muted" style="margin-top:-6px">Ofise bağlı olmayan, programı kendi başına deneyecek emlakçılar için hesap açın. Bu bölümü sadece sistem yöneticisi görür. Kişinin verileri sadece kendisine görünür.</p>
+    <div class="linkbox" style="margin-bottom:12px"><b>Deneme kullanıcısı oluştur</b>
+     <div class="grid c2" style="margin-top:8px"><label class="f"><span>Ad soyad</span><input type="text" id="dkAd"></label><label class="f"><span>Firma adı</span><input type="text" id="dkFirma"></label>
+      <label class="f"><span>E-posta</span><input type="email" id="dkEp" autocapitalize="off"></label>
+      <label class="f"><span>Şifre</span><div style="display:flex;gap:6px"><input type="text" id="dkSf" autocapitalize="off" autocomplete="off"><button class="btn ghost" id="dkUret" type="button">Üret</button></div></label></div>
+     <label class="f" style="margin-top:8px"><span>Not (isteğe bağlı)</span><input type="text" id="dkNot" placeholder="Örn. Kepez, tanıdık ofis"></label>
+     <button class="btn pri" id="dkOlustur" style="margin-top:10px">Kullanıcı oluştur</button><div id="dkSonuc"></div></div>
+    <div id="dkListe"><p class="small muted">Liste yükleniyor…</p></div>`;
+  $('#dkUret').onclick=()=>{const c='abcdefghjkmnpqrstuvwxyz23456789';$('#dkSf').value=[...crypto.getRandomValues(new Uint8Array(8))].map(x=>c[x%c.length]).join('')};
+  const listele=async()=>{const lst=$('#dkListe');if(!lst)return;try{const L_=await sbRpc('deneme_kullanicilari',{})||[];
+      lst.innerHTML=L_.length?`<h2 style="margin-top:6px">Açılan hesaplar (${L_.length})</h2><ul class="listed">${L_.map(u=>`<li><span class="grow"><b>${esc(u.ad||u.email)}</b>${u.firma?' · '+esc(u.firma):''}${u.kapali?' <span class="tag yk">Erişim kapalı</span>':''}
+        <br><span class="small muted">${esc(u.email)} · açıldı ${gun(u.tarih)} · ${u.son_giris?'son giriş '+tarih(u.son_giris):'henüz giriş yapmadı'}${u.not_?' · '+esc(u.not_):''}</span></span>
+        <button class="btn ghost ${u.kapali?'':'danger'}" data-dkerisim="${u.user_id}" data-acik="${u.kapali?'1':''}">${u.kapali?'Erişimi aç':'Erişimi kapat'}</button></li>`).join('')}</ul>`:'<p class="small muted">Henüz deneme kullanıcısı açılmadı.</p>';
+      $$('[data-dkerisim]').forEach(b=>b.onclick=async()=>{const ac=!!b.dataset.acik;if(!ac&&!confirm('Bu kullanıcının erişimi kapatılsın mı? Verileri silinmez, sonra tekrar açabilirsiniz.'))return;
+        try{await sbRpc('kullanici_erisim',{p_user:b.dataset.dkerisim,p_acik:ac});toast(ac?'Erişim açıldı':'Erişim kapatıldı');listele()}catch(e){toast(e.message)}})}
+    catch(e){lst.innerHTML=`<p class="small" style="color:var(--danger)">Liste alınamadı: ${esc(e.message)} (6-deneme-kullanicilari.sql çalıştırıldı mı?)</p>`}};
+  listele();
+  $('#dkOlustur').onclick=async e=>{const b=e.target;const ad=$('#dkAd').value.trim(),firma=$('#dkFirma').value.trim(),ep=$('#dkEp').value.trim().toLowerCase(),sf=$('#dkSf').value,not=$('#dkNot').value.trim();
+    if(!ad){toast('Kişinin adını yazın');return}if(!/^\S+@\S+\.\S+$/.test(ep)){toast('Geçerli bir e-posta yazın');return}if(sf.length<6){toast('Şifre en az 6 karakter olmalı (Üret düğmesini kullanabilirsiniz)');return}
+    b.disabled=true;b.textContent='Oluşturuluyor…';
+    try{await sbRpc('bagimsiz_kullanici_olustur',{p_email:ep,p_ad:ad,p_firma:firma,p_sifre:sf,p_not:not||null});
+      const bilgi=`Merhaba ${ad.split(' ')[0]}, Portföy Defteri deneme hesabınız açıldı.\nProgram: https://surextr.github.io/portfoydefteri/\nE-posta: ${ep}\nŞifre: ${sf}\n\nTelefonda adresi açıp ana ekrana ekleyin, Ayarlar > Bulut ve yedek > Giriş yap ile girin. Girdikten sonra Şifreyi değiştir ile kendi şifrenizi belirleyin.`;
+      ['dkAd','dkFirma','dkEp','dkSf','dkNot'].forEach(x=>$('#'+x).value='');
+      $('#dkSonuc').innerHTML=`<div class="panel" style="margin-top:10px;background:#fff"><b>✓ ${esc(ad)} için deneme hesabı açıldı.</b><pre class="small" style="white-space:pre-wrap;margin:8px 0">${esc(bilgi)}</pre>
+        <div class="actions"><button class="btn" id="dkKop">Bilgileri kopyala</button><a class="btn wa" style="background:#1FA855;border-color:#1FA855;color:#fff" href="https://wa.me/?text=${encodeURIComponent(bilgi)}" target="_blank" rel="noopener">WhatsApp'tan gönder</a></div><p class="small muted">Şifre bir daha gösterilmez.</p></div>`;
+      $('#dkKop').onclick=async()=>{try{await navigator.clipboard.writeText(bilgi)}catch(x){}toast('Kopyalandı')};listele()}
+    catch(x){toast(x.message)}finally{b.disabled=false;b.textContent='Kullanıcı oluştur'}};
+}
+
 /* ========== ilan linki (herkese açık ilan sayfası) ========== */
 const YAYIN_KOVA='yayin';
 function linkAdresi(tok){let base='https://surextr.github.io/portfoydefteri/ilan.html';if(location.protocol==='https:'&&!/^(localhost|127\.|192\.168\.|10\.)/.test(location.hostname))base=new URL('ilan.html',location.href).href;return base+'?k='+tok}
@@ -3600,7 +3638,8 @@ const AYAR_BOLUM=[
   ['belge','Belgeler ve süreçler','Yer gösterme belgesi, satış/kiralama adımları',['Yer gösterme belgesi','Süreç adımları']],
   ['aktarim','Sahibinden aktarma','iPhone kestirmesi, Android yer imi',["Sahibinden'den telefonla aktarma"]],
   ['genel','Genel ve görünüm','Varsayılan il, renk, filigran, emlak türleri',['Genel','Emlak türleri','Örnek ilanlar']],
-  ['guvenlik','Güvenlik','Açılış şifresi',['Güvenlik']]];
+  ['guvenlik','Güvenlik','Açılış şifresi',['Güvenlik']],
+  ['yonetim','Deneme kullanıcıları','Ofis dışı emlakçılar için hesap açma ve erişim',['#yonetimPanel']]];
 function ayarBolumle(bolum){
   const paneller=[...new Set($$('#app .panel'))].filter(p=>!p.closest('.sheet'));if(!paneller.length)return;
   const bul=p=>{const h=(p.querySelector('h2')||{}).textContent||'';for(const [k,,,L] of AYAR_BOLUM)for(const x of L){if(x[0]==='#'?('#'+p.id)===x:h.trim().startsWith(x))return k}return 'genel'};
@@ -3610,7 +3649,7 @@ function ayarBolumle(bolum){
   if(bolum==='tum'){paneller.forEach(p=>p.style.display='');h1.innerHTML=`<a href="#/ayarlar" class="btn ghost" style="min-height:36px;padding:4px 10px;margin-right:8px;vertical-align:middle">‹ Ayarlar</a>Tüm ayarlar`;nav.innerHTML='';return}
   if(!b){paneller.forEach(p=>p.style.display='none');
     const bulutDurum=BULUT.oturum?'Giriş: '+BULUT.oturum.user.email:'Giriş yapılmadı';const yedek=S.ayarlar.sonYedek?'Son yedek '+gun(S.ayarlar.sonYedek):'Yedek yok';
-    nav.innerHTML=`<div class="ayarmenu">${AYAR_BOLUM.map(([k,ad,ac])=>`<a href="#/ayarlar/${k}" class="ayarkart"><b>${ad}</b><span>${k==='bulut'?esc(bulutDurum+' · '+yedek):k==='ofis'&&S.ofis?esc('Ofis: '+S.ofis.ofis.ad):k==='firma'&&S.ayarlar.firma.ad?esc(S.ayarlar.firma.ad):ac}</span><i>›</i></a>`).join('')}</div><p class="small" style="margin:-4px 0 14px"><a href="#/ayarlar/tum">Tüm ayarları tek sayfada göster</a></p>`;
+    nav.innerHTML=`<div class="ayarmenu">${AYAR_BOLUM.filter(([k])=>k!=='yonetim'||S.sistemYonetici).map(([k,ad,ac])=>`<a href="#/ayarlar/${k}" class="ayarkart"><b>${ad}</b><span>${k==='bulut'?esc(bulutDurum+' · '+yedek):k==='ofis'&&S.ofis?esc('Ofis: '+S.ofis.ofis.ad):k==='firma'&&S.ayarlar.firma.ad?esc(S.ayarlar.firma.ad):ac}</span><i>›</i></a>`).join('')}</div><p class="small" style="margin:-4px 0 14px"><a href="#/ayarlar/tum">Tüm ayarları tek sayfada göster</a></p>`;
     h1.textContent='Ayarlar';return}
   paneller.forEach(p=>p.style.display=p.dataset.bolum===bolum?'':'none');
   h1.innerHTML=`<a href="#/ayarlar" class="btn ghost" style="min-height:36px;padding:4px 10px;margin-right:8px;vertical-align:middle">‹ Ayarlar</a>${esc(b[1])}`;nav.innerHTML=''}
@@ -3665,6 +3704,7 @@ function ayarlarSayfa(){
     <p class="small muted">Özel türlerin sahibinden'de birebir karşılığı yoktur; aktarırken en yakın türü seçmeniz gerekir.</p></details>
   </div>
   <div class="panel" id="ofisPanel"></div>
+  ${S.sistemYonetici?'<div class="panel" id="yonetimPanel"></div>':''}
   <div class="panel" id="bildirimPanel"></div>
   <div class="panel"><h2>Bulut ve eşitleme</h2><div id="bulutDurum"></div></div>
   <div class="panel"><h2>Sahibinden'den telefonla aktarma</h2>
@@ -3712,7 +3752,7 @@ function ayarlarSayfa(){
   $('#turEkle').onclick=async()=>{const ad=$('#yTur').value.trim();if(!ad){toast('Tür adını yazın');return}
     if(a.turler.some(t=>t.ad.toLocaleLowerCase('tr')===ad.toLocaleLowerCase('tr')&&t.ana===$('#yAna').value)){toast('Bu tür zaten var');return}
     a.turler.push({id:'o'+uid().slice(0,8),ana:$('#yAna').value,ad,aktif:true,ozel:true,ekAlanlar:$('#yEk').value.split(',').map(x=>x.trim()).filter(Boolean)});await ayarKaydet();toast(`"${ad}" eklendi`);ciz()};
-  bulutPanelCiz();ofisPanelCiz();bildirimPanelCiz();
+  bulutPanelCiz();ofisPanelCiz();bildirimPanelCiz();yonetimPanelCiz();
   $('#hKaydet').onclick=async()=>{const n=id=>Math.max(0,parseInt($('#'+id).value)||0);a.hatirlatma={yetki:n('hY'),kira:n('hK'),hareketsiz:n('hH'),musteri:n('hM')};await ayarKaydet();toast('Hatırlatma ayarları kaydedildi')};
   $$('[data-kkop]').forEach(b=>b.onclick=async()=>{const t=b.dataset.kkop==='ios'?KISAYOL_IOS:KISAYOL_ANDROID;
     try{await navigator.clipboard.writeText(t)}catch(e){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove()}toast('Kopyalandı')});
@@ -3855,7 +3895,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.10.02-0825';
+const SURUM='2026.10.02-0833';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
