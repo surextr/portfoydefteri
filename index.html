@@ -917,6 +917,10 @@ span.zorunlu::after{content:' *';color:var(--danger);font-weight:800}
 .rnum{width:30px;height:30px;border-radius:50%;background:var(--brand);color:#fff;font-weight:800;display:grid;place-items:center}
 .rgov p{margin:4px 0 8px;font-size:14px;line-height:1.5}.rgov b{font-size:15px}
 .rcz .rtel{width:128px;height:auto;display:block;filter:drop-shadow(0 4px 10px rgba(0,0,0,.12))}
+.rcz .rpc{width:200px;height:auto;display:block;filter:drop-shadow(0 4px 10px rgba(0,0,0,.12))}
+.radim:has(.rpc){grid-template-columns:34px 1fr 200px}
+@media(max-width:560px){.radim:has(.rpc){grid-template-columns:30px 1fr}.radim:has(.rpc) .rcz{grid-column:2}.rcz .rpc{width:100%;max-width:260px}}
+.bmlink{display:inline-flex;align-items:center;gap:6px;background:#3C7922;color:#fff!important;text-decoration:none;font-weight:700;padding:10px 18px;border-radius:999px;cursor:grab;box-shadow:0 3px 0 #2B5618}
 .rbas{margin:18px 0 4px;font-size:16px}.rsorun{margin-top:14px;background:#FFFBF1;border:1px solid #EFD9A3;border-radius:12px;padding:10px 14px}.rsorun summary{cursor:pointer;font-weight:700}.rsorun p{font-size:14px;margin:8px 0}
 @media(max-width:480px){.radim{grid-template-columns:30px 1fr 96px}.rcz .rtel{width:96px}.rgov p{font-size:13.5px}}
 .lrows{display:flex;flex-direction:column;background:var(--card,#fff);border:1px solid var(--line);border-radius:14px;overflow:hidden}
@@ -3467,7 +3471,20 @@ const SV={
   kutu:(x,y,w,h,t,renk,yazi)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${renk||'#EEF1EC'}"/>${t?`<text x="${x+6}" y="${y+h/2+3.5}" font-size="8.5" fill="${yazi||'#18211B'}">${t}</text>`:''}`,
   satir:(y,t,ikon)=>`<rect x="18" y="${y}" width="124" height="20" rx="5" fill="#F4F6F3"/>${ikon?`<rect x="23" y="${y+4}" width="12" height="12" rx="3" fill="${ikon}"/>`:''}<text x="${ikon?40:24}" y="${y+13.5}" font-size="8" fill="#18211B">${t}</text>`,
   tik:(x,y,acik)=>`<rect x="${x}" y="${y}" width="22" height="13" rx="6.5" fill="${acik?'#34C759':'#CBD2CC'}"/><circle cx="${acik?x+15.5:x+6.5}" cy="${y+6.5}" r="5.2" fill="#fff"/>`};
+function pcEkran(ic,cubukVurgu){return `<svg viewBox="0 0 240 160" class="rpc" aria-hidden="true"><rect x="2" y="2" width="236" height="156" rx="8" fill="#DADFDA"/><rect x="6" y="6" width="228" height="148" rx="5" fill="#fff"/>
+  <rect x="6" y="6" width="228" height="14" rx="5" fill="#E8ECE8"/><rect x="12" y="9" width="60" height="9" rx="3" fill="#fff"/><circle cx="222" cy="13" r="2.5" fill="#E55934"/><circle cx="214" cy="13" r="2.5" fill="#FDBA4C"/><circle cx="206" cy="13" r="2.5" fill="#9BC53D"/>
+  <rect x="12" y="23" width="216" height="11" rx="5.5" fill="#F1F3F1"/><text x="18" y="31" font-size="6.5" fill="#4A554C">sahibinden.com/ilan/…</text>
+  <rect x="6" y="37" width="228" height="12" fill="${cubukVurgu?'#FFF4E6':'#FAFBFA'}"/><text x="14" y="45.5" font-size="6.5" fill="#4A554C">★ Yer imleri</text>${cubukVurgu==='dolu'?`<rect x="56" y="39" width="56" height="9" rx="4.5" fill="#3C7922"/><text x="84" y="45.5" text-anchor="middle" font-size="6.2" fill="#fff">Portföy'e aktar</text>`:''}${ic}</svg>`}
 function rehberCizim(k){const {tel,hl,kutu,satir,tik}=SV;
+  const pc={p1:pcEkran(`<text x="120" y="100" text-anchor="middle" font-size="11" font-weight="700" fill="#18211B">Ctrl + Shift + B</text>`+hl(6,37,228,12,2),true),
+   p2:pcEkran(`<rect x="70" y="112" width="100" height="22" rx="11" fill="#3C7922"/><text x="120" y="126" text-anchor="middle" font-size="9" fill="#fff" font-weight="700">Portföy'e aktar</text><path d="M120 110 C 120 80, 90 70, 84 52" stroke="#F08A24" stroke-width="2.5" fill="none" stroke-dasharray="4 3"/><path d="M80 56 l4 -6 l5 5" stroke="#F08A24" stroke-width="2.5" fill="none"/>`+hl(56,39,56,9,4),'dolu'),
+   p3:pcEkran(`<rect x="60" y="56" width="120" height="86" rx="6" fill="#fff" stroke="#C9D3CA"/><text x="68" y="70" font-size="7.5" font-weight="700" fill="#18211B">Yer işareti ekle</text><text x="68" y="84" font-size="6.5" fill="#6B7568">Ad</text><rect x="68" y="87" width="104" height="11" rx="3" fill="#F4F6F3"/><text x="72" y="95" font-size="6.5" fill="#18211B">Portföy'e aktar</text><text x="68" y="109" font-size="6.5" fill="#6B7568">URL</text><rect x="68" y="112" width="104" height="11" rx="3" fill="#F4F6F3"/><text x="72" y="120" font-size="6.2" fill="#18211B">javascript:!async function…</text>`+hl(68,112,104,11,3),true),
+   p4:pcEkran(`<rect x="200" y="24" width="10" height="9" rx="2" fill="#3D7BF7"/>`+hl(200,24,10,9,2)+`<rect x="70" y="64" width="100" height="56" rx="6" fill="#fff" stroke="#C9D3CA"/><text x="120" y="82" text-anchor="middle" font-size="7.5" font-weight="700" fill="#18211B">Uygulama yüklensin mi?</text><rect x="128" y="98" width="34" height="13" rx="4" fill="#3D7BF7"/><text x="145" y="107" text-anchor="middle" font-size="6.5" fill="#fff">Yükle</text>`),
+   q1:pcEkran(`<rect x="14" y="56" width="110" height="80" rx="4" fill="#DCE6EE"/><rect x="132" y="56" width="90" height="8" rx="4" fill="#B9C4BB"/><rect x="132" y="70" width="60" height="10" rx="4" fill="#3C7922"/>`+[0,1,2,3].map(i=>`<rect x="132" y="${88+i*11}" width="${86-i*12}" height="5" rx="2.5" fill="#D5DDD6"/>`).join(''),'dolu'),
+   q2:pcEkran(`<rect x="14" y="56" width="110" height="80" rx="4" fill="#DCE6EE"/><rect x="132" y="56" width="90" height="8" rx="4" fill="#B9C4BB"/>`+hl(56,39,56,9,4),'dolu'),
+   q3:pcEkran(`<rect x="6" y="49" width="228" height="105" fill="#fff"/><text x="120" y="88" text-anchor="middle" font-size="8.5" fill="#18211B">Portföy Defteri: bilgiler, açıklama, konum alındı.</text><rect x="60" y="100" width="120" height="20" rx="8" fill="#3C7922"/><text x="120" y="113" text-anchor="middle" font-size="8.5" fill="#fff">Kopyala</text>`+hl(60,100,120,20,8),'dolu'),
+   q5:pcEkran(`<rect x="14" y="56" width="212" height="80" rx="4" fill="rgba(61,123,247,.18)"/><text x="120" y="92" text-anchor="middle" font-size="12" font-weight="800" fill="#18211B">Ctrl + A</text><text x="120" y="112" text-anchor="middle" font-size="12" font-weight="800" fill="#18211B">Ctrl + C</text>`)};
+  if(pc[k])return pc[k];
   const ikonlar=(vurgu)=>{let s='';const r=['#5BC0EB','#FDE74C','#9BC53D','#E55934','#FA7921','#7E57C2','#26A69A','#EC407A','#8D6E63','#42A5F5','#AB47BC','#66BB6A'];for(let i=0;i<12;i++){const x=22+(i%4)*31,y=40+Math.floor(i/4)*40;s+=`<rect x="${x}" y="${y}" width="24" height="24" rx="6" fill="${i===vurgu?'url(#kgr)':r[i]}"/>`+(i===vurgu?`<text x="${x+12}" y="${y+33}" text-anchor="middle" font-size="6.5" fill="#18211B">Kestirmeler</text>`:'')}
     return `<defs><linearGradient id="kgr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E9407A"/><stop offset="1" stop-color="#3D7BF7"/></linearGradient></defs>`+s};
   const C={
@@ -3514,22 +3531,38 @@ const REHBER={
   ['b2','pdkopyala yazın','Adres çubuğuna dokunup <b>pdkopyala</b> yazın ve önerilerde çıkan <b>yıldızlı</b> yer imine dokunun (Google aramasına değil).'],
   ['b3','Kopyala\'ya basın','Sayfada açılan pencerede <b>Kopyala</b>\'ya basın. Pencere açılmazsa birkaç saniye bekleyip yer imini tekrar çalıştırın.'],
   ['u4','Programa yapıştırın','Portföy Defteri\'nde <b>İlan Ekle</b> › <b>Sahibinden\'den bilgi al</b> › <b>Panodan yapıştır</b> deyin, sonra <b>Bilgileri al</b>.']]}};
+REHBER.pc={kurulum:[
+  ['p1','Yer imleri çubuğunu açın','Chrome veya Edge\'de klavyeden <b>Ctrl + Shift + B</b>\'ye basın. Adres çubuğunun altında yer imleri çubuğu görünür (zaten açıksa geçin).'],
+  ['p2','Düğmeyi çubuğa sürükleyin','Aşağıdaki yeşil <b>Portföy\'e aktar</b> düğmesini fareyle tutun, yer imleri çubuğunun üzerine sürükleyip bırakın. Çubukta aynı adla bir düğme belirir.','pcdrag'],
+  ['p3','Sürükleyemezseniz','Yer imleri çubuğuna sağ tıklayıp <b>Sayfa ekle</b> / <b>Yer işareti ekle</b> deyin. Adı <b>Portföy\'e aktar</b> yapın, <b>URL</b> kutusuna aşağıdaki düğmeyle kopyaladığınız kodu yapıştırıp kaydedin.','android'],
+  ['p4','Programı bilgisayara kurun (isteğe bağlı)','Programı Chrome/Edge\'de açıkken adres çubuğunun sağındaki <b>Yükle</b> simgesine (veya ⋮ › <b>Uygulama olarak yükle</b>) tıklayın. Program masaüstünde ayrı bir pencerede açılır.']],
+ kullanim:[
+  ['q1','İlanı açın','sahibinden.com\'da ilan sayfasını açın ve sayfanın tamamen yüklenmesini bekleyin.'],
+  ['q2','Portföy\'e aktar\'a tıklayın','Yer imleri çubuğundaki <b>Portföy\'e aktar</b> düğmesine tıklayın. Birkaç saniye içinde bilgiler toplanır.'],
+  ['q3','Kopyala\'ya basın','Açılan beyaz ekranda hangi bilgilerin alındığı yazar (açıklama, konum). <b>Kopyala</b>\'ya tıklayın.'],
+  ['u4','Programa yapıştırın','Portföy Defteri\'nde <b>İlan Ekle</b> › <b>Sahibinden\'den bilgi al</b> › <b>Panodan yapıştır</b>, sonra <b>Bilgileri al</b>. Fotoğrafları ilandan kaydedip 4. adımda ekleyin.']],
+ ek:{baslik:'Kurulum yapmadan (klavyeyle)',adimlar:[['q5','Sayfayı kopyalayın','İlan sayfasında <b>Ctrl + A</b> (tümünü seç), ardından <b>Ctrl + C</b> (kopyala) yapın, sonra programda <b>Panodan yapıştır</b> deyin. Bilgiler ve açıklama gelir; <b>konum gelmez</b>, haritadan işaretlersiniz.']]}};
 const REHBER_SORUN={
  iphone:[['Paylaş listesinde "Portföy\'e Kopyala" yok','Kestirmenin <b>ⓘ Ayrıntılar</b> bölümünde <b>Paylaşım Sayfasında Göster</b> açık mı kontrol edin. Paylaş listesinin en altındaki <b>Eylemleri Düzenle</b>\'den de ekleyebilirsiniz. İlanın Safari\'de açık olduğundan emin olun.'],
   ['"Betik çalıştırmaya izin verilmiyor" uyarısı','Kurulumun 7. adımındaki izni açın.'],
   ['Açıklama veya konum gelmedi','İlan sayfası tam yüklenmeden çalıştırılmış olabilir; sayfayı aşağı kaydırıp birkaç saniye bekledikten sonra tekrar deneyin. Konum gelmezse formdaki haritadan elle işaretleyin.'],
   ['Kestirmeyi yeniden kurmam gerekti','Telefon değiştirdiyseniz kurulumu baştan yapın; <b>Kodu kopyala</b> düğmesi her zaman güncel kodu verir.']],
+ pc:[['Yer imleri çubuğu görünmüyor','<b>Ctrl + Shift + B</b> ile açın. Edge\'de: Ayarlar › Görünüm › <b>Sık kullanılanlar çubuğunu göster</b> › Her zaman.'],
+  ['Düğmeyi sürükleyince sayfa açılıyor ya da hiçbir şey olmuyor','Düğmeyi tam yer imleri çubuğunun üzerine bırakın. Olmazsa 3. adımdaki elle ekleme yolunu kullanın.'],
+  ['Portföy\'e aktar\'a tıklayınca bir şey olmuyor','Sayfanın tamamen yüklendiğinden emin olun; beyaz pencere 4-5 saniye içinde açılır. Yer işaretinin URL\'sinin <b>javascript:</b> ile başladığını kontrol edin.'],
+  ['Konum gelmedi','Bazı ilanlarda konum sayfada bulunmayabilir; formdaki haritadan işaretleyin.']],
  android:[['Yer imi önerilerde çıkmıyor','Adres çubuğuna adın tamamını (<b>pdkopyala</b>) yazın; yer imi adının bire bir aynı olduğunu kontrol edin.'],
   ['Yer imine dokununca Google araması açılıyor','Yıldızlı öneriye değil arama satırına dokunmuşsunuz; listede ☆ işaretli satırı seçin.'],
   ['Hiçbir şey olmuyor','URL kutusundaki kodun <b>javascript:</b> ile başlayıp <b>}();</b> ile bittiğini kontrol edin; eksik yapıştırıldıysa yeniden kopyalayıp yapıştırın. Samsung Internet değil Chrome kullanın.'],
   ['Kopyala\'dan sonra yapıştırılan metin boş','Pencere açıkken <b>Kopyala</b>\'ya basın; olmazsa pencerede çıkan <b>İndir</b> ile dosyayı kaydedip WhatsApp\'ta Belge olarak kendinize gönderin ve metni oradan kopyalayın.']]};
-function rehberHtml(){const sk=S.aktarSekme||(/Android/i.test(navigator.userAgent)?'android':'iphone');const R=REHBER[sk];
-  const kart=(a,n)=>`<div class="radim"><div class="rnum">${n}</div><div class="rgov"><b>${a[1]}</b><p>${a[2]}</p>${a[3]?`<button class="btn pri" data-kkop="${a[3]}">${a[3]==='ios'?'Kodu kopyala':'Yer imi kodunu kopyala'}</button>`:''}</div><div class="rcz">${rehberCizim(a[0])}</div></div>`;
-  return `<div class="seg" role="tablist" style="margin-bottom:12px">${[['iphone','iPhone'],['android','Samsung / Android']].map(([k,l])=>`<button role="tab" aria-selected="${sk===k}" class="${sk===k?'on':''}" data-rsek="${k}">${l}</button>`).join('')}</div>
-    <h3 class="rbas">Bir kerelik kurulum <span class="small muted">· ${sk==='iphone'?'yaklaşık 3 dakika':'yaklaşık 2 dakika'}</span></h3>${R.kurulum.map((a,k)=>kart(a,k+1)).join('')}
+function rehberHtml(){const sk=S.aktarSekme||(/Android/i.test(navigator.userAgent)?'android':/iPhone|iPad/i.test(navigator.userAgent)?'iphone':'pc');const R=REHBER[sk];
+  const kart=(a,n)=>`<div class="radim"><div class="rnum">${n}</div><div class="rgov"><b>${a[1]}</b><p>${a[2]}</p>${a[3]==='pcdrag'?`<a class="bmlink" href="${esc(KISAYOL_ANDROID)}" draggable="true" title="Yer imleri çubuğuna sürükleyin">📋 Portföy'e aktar</a><div class="small muted" style="margin-top:4px">Tıklamayın, fareyle tutup sürükleyin.</div>`:a[3]?`<button class="btn pri" data-kkop="${a[3]}">${a[3]==='ios'?'Kodu kopyala':'Yer imi kodunu kopyala'}</button>`:''}</div><div class="rcz">${rehberCizim(a[0])}</div></div>`;
+  return `<div class="seg" role="tablist" style="margin-bottom:12px">${[['iphone','iPhone'],['android','Samsung / Android'],['pc','Bilgisayar']].map(([k,l])=>`<button role="tab" aria-selected="${sk===k}" class="${sk===k?'on':''}" data-rsek="${k}">${l}</button>`).join('')}</div>
+    <h3 class="rbas">Bir kerelik kurulum <span class="small muted">· ${sk==='iphone'?'yaklaşık 3 dakika':sk==='pc'?'yaklaşık 1 dakika':'yaklaşık 2 dakika'}</span></h3>${R.kurulum.map((a,k)=>kart(a,k+1)).join('')}
     <h3 class="rbas">Her ilanda kullanım</h3>${R.kullanim.map((a,k)=>kart(a,k+1)).join('')}
+    ${R.ek?`<h3 class="rbas">${R.ek.baslik}</h3>${R.ek.adimlar.map((a,k)=>kart(a,k+1)).join('')}`:''}
     <details class="rsorun"><summary>Sık karşılaşılan sorunlar</summary>${REHBER_SORUN[sk].map(([s,c])=>`<p><b>${s}</b><br>${c}</p>`).join('')}</details>`}
-function rehberBagla(){$$('[data-rsek]').forEach(b=>b.onclick=()=>{S.aktarSekme=b.dataset.rsek;const el=$('#aktarRehber');if(el){el.innerHTML=rehberHtml();rehberBagla();kodKopyaBagla()}})}
+function rehberBagla(){$$('.bmlink').forEach(a=>a.onclick=e=>{e.preventDefault();toast('Bu düğmeyi tıklamak yerine fareyle tutup yer imleri çubuğuna sürükleyin')});$$('[data-rsek]').forEach(b=>b.onclick=()=>{S.aktarSekme=b.dataset.rsek;const el=$('#aktarRehber');if(el){el.innerHTML=rehberHtml();rehberBagla();kodKopyaBagla()}})}
 
 function kodKopyaBagla(){$$('[data-kkop]').forEach(b=>b.onclick=async()=>{const t=b.dataset.kkop==='ios'?KISAYOL_IOS:KISAYOL_ANDROID;
     try{await navigator.clipboard.writeText(t)}catch(e){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove()}toast(b.dataset.kkop==='ios'?'Kestirme kodu kopyalandı':'Yer imi kodu kopyalandı')})}
@@ -3772,7 +3805,7 @@ const AYAR_BOLUM=[
   ['ofis','Ofis ve ekip','Ofis, ekip arkadaşları, dış ofisler',['#ofisPanel','Ekibim','Dış ofisler']],
   ['bildirim','Bildirim ve hatırlatmalar','Telefon bildirimleri, hatırlatma süreleri',['#bildirimPanel','Hatırlatmalar']],
   ['belge','Belgeler ve süreçler','Yer gösterme belgesi, satış/kiralama adımları',['Yer gösterme belgesi','Süreç adımları']],
-  ['aktarim','Sahibinden aktarma','iPhone kestirmesi, Android yer imi',["Sahibinden'den telefonla aktarma"]],
+  ['aktarim','Sahibinden aktarma','iPhone, Samsung ve bilgisayar için resimli kurulum',["Sahibinden'den aktarma"]],
   ['genel','Genel ve görünüm','Varsayılan il, renk, filigran, emlak türleri',['Genel','Emlak türleri','Örnek ilanlar']],
   ['guvenlik','Güvenlik','Açılış şifresi',['Güvenlik']],
   ['yonetim','Deneme kullanıcıları','Hesap açma, erişim ve gelen geri bildirimler',['#yonetimPanel']],
@@ -3845,8 +3878,8 @@ function ayarlarSayfa(){
   ${S.sistemYonetici?'<div class="panel" id="yonetimPanel"></div>':''}
   <div class="panel" id="bildirimPanel"></div>
   <div class="panel"><h2>Bulut ve eşitleme</h2><div id="bulutDurum"></div></div>
-  <div class="panel"><h2>Sahibinden'den telefonla aktarma</h2>
-   <p class="small muted" style="margin-top:-6px">Telefonda sahibinden ilanını açıklaması ve konumuyla birlikte programa aktarmak için telefonunuzu seçin. Kurulum bir kez yapılır.</p>
+  <div class="panel"><h2>Sahibinden'den aktarma</h2>
+   <p class="small muted" style="margin-top:-6px">Sahibinden ilanını açıklaması ve konumuyla birlikte programa aktarmak için kullandığınız cihazı seçin. Kurulum her cihazda bir kez yapılır.</p>
    <div id="aktarRehber">${rehberHtml()}</div></div>
   <div class="panel"><h2>Yedekleme</h2>
    <p class="small muted" style="margin-top:-6px">Tüm ilanlar, fotoğraflar, belgeler ve ayarlar tek bir dosyaya kaydedilir. Bu dosyayla başka cihaza aktarabilir ya da kayıptan sonra geri yükleyebilirsiniz.${a.sonYedek?` Son yedek: <b>${tarih(a.sonYedek)}</b>.`:' Henüz yedek alınmadı.'}</p>
@@ -4022,7 +4055,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.10.05-0825';
+const SURUM='2026.10.05-0829';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
