@@ -913,6 +913,12 @@ span.zorunlu::after{content:' *';color:var(--danger);font-weight:800}
 .ktablo th{min-width:170px}.kbas{text-decoration:none;color:inherit;display:block}.kph{height:96px;border-radius:10px;background:var(--soft) center/cover no-repeat;margin-bottom:6px;display:grid;place-items:center}.kph.yok{background:#F4F7F2}
 .ktablo td.iyi{background:#EAF4E4;color:#2B5618;font-weight:700}.kcikar{min-height:30px;padding:2px 10px;margin-top:6px;font-size:12.5px}
 @media print{.karsibar,.toolbar,.bnav,header.top,.actions{display:none!important}.ktablo-sar{overflow:visible;border:0}}
+.radim{display:grid;grid-template-columns:34px 1fr 128px;gap:10px;align-items:start;padding:12px 0;border-bottom:1px solid var(--line)}
+.rnum{width:30px;height:30px;border-radius:50%;background:var(--brand);color:#fff;font-weight:800;display:grid;place-items:center}
+.rgov p{margin:4px 0 8px;font-size:14px;line-height:1.5}.rgov b{font-size:15px}
+.rcz .rtel{width:128px;height:auto;display:block;filter:drop-shadow(0 4px 10px rgba(0,0,0,.12))}
+.rbas{margin:18px 0 4px;font-size:16px}.rsorun{margin-top:14px;background:#FFFBF1;border:1px solid #EFD9A3;border-radius:12px;padding:10px 14px}.rsorun summary{cursor:pointer;font-weight:700}.rsorun p{font-size:14px;margin:8px 0}
+@media(max-width:480px){.radim{grid-template-columns:30px 1fr 96px}.rcz .rtel{width:96px}.rgov p{font-size:13.5px}}
 .lrows{display:flex;flex-direction:column;background:var(--card,#fff);border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .lrow{display:flex;gap:12px;padding:10px;border-bottom:1px solid var(--line);text-decoration:none;color:inherit;background:#fff}
 .lrow:last-child{border-bottom:0}.lrow:active{background:var(--soft)}
@@ -1469,8 +1475,8 @@ async function form(id){
   <div class="toolbar"><a class="btn ghost" href="${mevcut?'#/ilan/'+i.id:'#/ilanlar'}" id="iptal">${IC.left} Vazgeç</a></div>
   <h1>${mevcut?'İlanı düzenle':'Yeni ilan'}</h1>
   ${rapor?`<div class="banner" style="background:var(--soft);border-color:#C9DBC0;color:var(--brand-deep)"><span><b>${rapor.kaynak?esc(rapor.kaynak)+' metninden':"Sahibinden'den"} ${rapor.sayi} bilgi alındı.</b> Kontrol edip eksikleri tamamlayın${rapor.notlar.length?': '+esc(rapor.notlar.join(' · ')):'.'} Fotoğrafları ayrıca eklemeniz gerekir.</span></div>`:''}
-  ${mevcut?'':`<details class="panel" id="iceP" ${ice||S.iceAcik?'':''}><summary style="cursor:pointer;font-weight:700;color:var(--brand-deep)">Sahibinden'den bilgi al</summary>
-    <p class="small muted">Sahibinden ilan sayfasının yazısını kopyalayın, sonra <b>Panodan yapıştır</b>'a basın. Bilgisayarda: sayfada Ctrl+A, Ctrl+C. iPhone'da: Safari'de açtığınız ilanda Paylaş > "Portföy'e Kopyala" kısayolu. Bunu formu doldurmaya başlamadan önce yapın.</p>
+  ${mevcut?'':`<details class="panel" id="iceP" data-rehber="1" ${ice||S.iceAcik?'':''}><summary style="cursor:pointer;font-weight:700;color:var(--brand-deep)">Sahibinden'den bilgi al</summary>
+    <p class="small muted">Sahibinden ilan sayfasının yazısını kopyalayın, sonra <b>Panodan yapıştır</b>'a basın. Bilgisayarda: sayfada Ctrl+A, Ctrl+C. iPhone'da: Safari'de açtığınız ilanda Paylaş > "Portföy'e Kopyala" kısayolu. Bunu formu doldurmaya başlamadan önce yapın. <a href="#/ayarlar/aktarim">Telefon kurulumu nasıl yapılır? (resimli rehber)</a></p>
     <button type="button" class="btn pri" id="icePano" style="width:100%;min-height:48px">${IC.copy} Panodan yapıştır ve doldur</button>
     <details style="margin-top:10px"><summary class="small" style="cursor:pointer">Metni elle yapıştırmak için</summary>
     <textarea id="iceMetin" placeholder="Sahibinden ilan sayfasının metnini buraya yapıştırın" style="margin-top:8px"></textarea>
@@ -3390,7 +3396,8 @@ async function yonetimPanelCiz(){const el=$('#yonetimPanel');if(!el)return;
       <label class="f"><span>Şifre</span><div style="display:flex;gap:6px"><input type="text" id="dkSf" autocapitalize="off" autocomplete="off"><button class="btn ghost" id="dkUret" type="button">Üret</button></div></label></div>
      <label class="f" style="margin-top:8px"><span>Not (isteğe bağlı)</span><input type="text" id="dkNot" placeholder="Örn. Kepez, tanıdık ofis"></label>
      <button class="btn pri" id="dkOlustur" style="margin-top:10px">Kullanıcı oluştur</button><div id="dkSonuc"></div></div>
-    <div id="dkListe"><p class="small muted">Liste yükleniyor…</p></div>`;
+    <div id="dkListe"><p class="small muted">Liste yükleniyor…</p></div><div id="gbYonetim" style="margin-top:14px"></div>`;
+  const gbY=async()=>{const e2=$('#gbYonetim');if(!e2)return;e2.innerHTML=await gbYonetimHtml();gbYonetimBagla(gbY)};gbY();
   $('#dkUret').onclick=()=>{const c='abcdefghjkmnpqrstuvwxyz23456789';$('#dkSf').value=[...crypto.getRandomValues(new Uint8Array(8))].map(x=>c[x%c.length]).join('')};
   const listele=async()=>{const lst=$('#dkListe');if(!lst)return;try{const L_=await sbRpc('deneme_kullanicilari',{})||[];
       lst.innerHTML=L_.length?`<h2 style="margin-top:6px">Açılan hesaplar (${L_.length})</h2><ul class="listed">${L_.map(u=>`<li><span class="grow"><b>${esc(u.ad||u.email)}</b>${u.firma?' · '+esc(u.firma):''}${u.kapali?' <span class="tag yk">Erişim kapalı</span>':''}
@@ -3412,6 +3419,120 @@ async function yonetimPanelCiz(){const el=$('#yonetimPanel');if(!el)return;
     catch(x){toast(x.message)}finally{b.disabled=false;b.textContent='Kullanıcı oluştur'}};
 }
 
+
+/* ========== GERİ BİLDİRİM ========== */
+const GB_WHATSAPP='905334200489';
+const GB_TUR=['Sorun','Öneri','Soru','Beğendim'];
+const GB_KONU=['İlanlar / ilan ekleme','Fotoğraflar','Sahibinden aktarma','Paylaşım / PDF / link','Müşteriler / eşleştirme','Ajanda / hatırlatma','Ofis / ekip','Giriş / bulut / eşitleme','Bildirimler','Görünüm / kullanım','Diğer'];
+function cihazBilgisi(){const ua=navigator.userAgent;const c=/iPhone/.test(ua)?'iPhone':/iPad/.test(ua)?'iPad':/Android/.test(ua)?((ua.match(/;\s*([^;)]+)\s+Build/)||[])[1]||'Android'):/Windows/.test(ua)?'Windows':/Mac OS/.test(ua)?'Mac':'Diğer';
+  const os=(ua.match(/iPhone OS (\d+[_\d]*)/)||ua.match(/Android (\d+[.\d]*)/)||[])[1];const t=/SamsungBrowser/.test(ua)?'Samsung Internet':/EdgA?\//.test(ua)?'Edge':/CriOS|Chrome/.test(ua)?'Chrome':/Safari/.test(ua)?'Safari':/Firefox/.test(ua)?'Firefox':'tarayıcı';
+  return `${c}${os?' '+os.replace(/_/g,'.'):''} · ${t} · ${anaEkrandan()?'ana ekran uygulaması':location.protocol==='file:'?'tek dosya':'tarayıcı'} · ${window.innerWidth}×${window.innerHeight}`}
+const GB_DURUM={yeni:['Yeni','yk'],inceleniyor:['İnceleniyor','gd'],cozuldu:['Çözüldü','ok']};
+async function geriPanelCiz(){const el=$('#geriPanel');if(!el)return;const surum=typeof SURUM!=='undefined'?SURUM:'';
+  el.innerHTML=`<h2>Geri bildirim gönder</h2><p class="small muted" style="margin-top:-6px">Karşılaştığınız bir sorunu, önerinizi ya da sorunuzu yazın. Program sürümü ve cihaz bilgisi kendiliğinden eklenir. Ekran görüntüsü varsa gönderdikten sonra açılan WhatsApp sohbetine ekleyebilirsiniz.</p>
+    <div class="grid c2"><label class="f"><span>Tür</span><select id="gbTur">${GB_TUR.map(x=>`<option>${x}</option>`).join('')}</select></label><label class="f"><span>Konu</span><select id="gbKonu">${GB_KONU.map(x=>`<option>${x}</option>`).join('')}</select></label></div>
+    <label class="f" style="margin-top:10px"><span>Açıklama</span><textarea id="gbMetin" style="min-height:120px" placeholder="Ne yapmaya çalışırken ne oldu? Ne olmasını beklerdiniz? Önerinizi kısaca yazın."></textarea></label>
+    <label style="display:flex;gap:8px;align-items:center;margin-top:8px" class="small"><input type="checkbox" id="gbWa" checked> WhatsApp'tan da gönder</label>
+    <p class="small muted" style="margin:6px 0 0">Cihaz: ${esc(cihazBilgisi())} · Sürüm: ${esc(surum)}</p>
+    <button class="btn pri" id="gbGonder" style="margin-top:10px">Gönder</button>
+    <div id="gbListe" style="margin-top:14px"></div>`;
+  const listele=async()=>{const lst=$('#gbListe');if(!lst||!BULUT.oturum||!navigator.onLine)return;
+    try{const L_=await sbJson(`/rest/v1/geri_bildirimler?select=*&user_id=eq.${BULUT.oturum.user.id}&order=tarih.desc&limit=30`)||[];
+      lst.innerHTML=L_.length?`<h2 style="margin-top:6px">Gönderdikleriniz</h2><ul class="hist">${L_.map(g=>`<li><time>${tarih(g.tarih)} · ${esc(g.tur)} · ${esc(g.konu||'')}</time><span class="tag ${GB_DURUM[g.durum][1]}">${GB_DURUM[g.durum][0]}</span> ${esc(g.metin)}${g.yanit?`<div class="small" style="margin-top:4px;background:#F2F8EE;padding:6px 8px;border-radius:8px"><b>Yanıt:</b> ${esc(g.yanit)}</div>`:''}</li>`).join('')}</ul>`:''}catch(e){}};
+  listele();
+  $('#gbGonder').onclick=async e=>{const b=e.target;const metin=$('#gbMetin').value.trim();if(metin.length<5){toast('Lütfen kısa bir açıklama yazın');$('#gbMetin').focus();return}
+    const f=S.ayarlar.firma;const kayit={tur:$('#gbTur').value,konu:$('#gbKonu').value,metin,surum,cihaz:cihazBilgisi(),ad:f.yetkili||'',firma:f.ad||'',email:BULUT.oturum?BULUT.oturum.user.email:''};
+    b.disabled=true;b.textContent='Gönderiliyor…';let kaydedildi=false;
+    if(BULUT.oturum&&navigator.onLine){try{await sbTamam(await sb('/rest/v1/geri_bildirimler',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({...kayit,user_id:BULUT.oturum.user.id})}),'Kaydedilemedi');kaydedildi=true}catch(x){}}
+    if($('#gbWa').checked||!kaydedildi){const msj=`*Portföy Defteri geri bildirimi*\nTür: ${kayit.tur}\nKonu: ${kayit.konu}\n\n${metin}\n\n— ${[kayit.ad,kayit.firma].filter(Boolean).join(' · ')||'Ad girilmemiş'}${kayit.email?' · '+kayit.email:''}\nSürüm: ${surum}\nCihaz: ${kayit.cihaz}`;
+      window.open(`https://wa.me/${GB_WHATSAPP}?text=${encodeURIComponent(msj)}`,'_blank')}
+    $('#gbMetin').value='';b.disabled=false;b.textContent='Gönder';toast(kaydedildi?'Geri bildiriminiz alındı, teşekkürler':'WhatsApp açıldı; mesajı gönderin');listele()};
+}
+async function gbYonetimHtml(){try{const L_=await sbJson('/rest/v1/geri_bildirimler?select=*&order=tarih.desc&limit=100')||[];const yeni=L_.filter(g=>g.durum!=='cozuldu');
+  return `<h2 style="margin-top:6px">Gelen geri bildirimler ${yeni.length?`<span class="nb">${yeni.length}</span>`:''}</h2>${L_.length?`<ul class="hist">${L_.map(g=>`<li data-gbid="${g.id}"><time>${tarih(g.tarih)} · ${esc(g.ad||g.email||'')}${g.firma?' · '+esc(g.firma):''}</time>
+     <span class="tag ${GB_DURUM[g.durum][1]}">${GB_DURUM[g.durum][0]}</span> <b>${esc(g.tur)}</b> · ${esc(g.konu||'')}<div style="white-space:pre-wrap">${esc(g.metin)}</div>
+     <div class="small muted">${esc(g.cihaz||'')} · ${esc(g.surum||'')}</div>${g.yanit?`<div class="small" style="background:#F2F8EE;padding:6px 8px;border-radius:8px;margin-top:4px"><b>Yanıtınız:</b> ${esc(g.yanit)}</div>`:''}
+     <div class="actions" style="margin-top:6px">${g.durum!=='cozuldu'?`<button class="btn ghost" data-gbd="cozuldu" style="min-height:32px;padding:3px 10px">✓ Çözüldü</button>`:`<button class="btn ghost" data-gbd="yeni" style="min-height:32px;padding:3px 10px">Tekrar aç</button>`}${g.durum==='yeni'?`<button class="btn ghost" data-gbd="inceleniyor" style="min-height:32px;padding:3px 10px">İnceleniyor</button>`:''}<button class="btn ghost" data-gby style="min-height:32px;padding:3px 10px">Yanıt yaz</button></div></li>`).join('')}</ul>`:'<p class="small muted">Henüz geri bildirim yok.</p>'}`}
+  catch(e){return `<p class="small" style="color:var(--danger)">Geri bildirimler alınamadı (7-geri-bildirimler.sql çalıştırıldı mı?)</p>`}}
+function gbYonetimBagla(yenile){
+  $$('[data-gbid] [data-gbd]').forEach(b=>b.onclick=async()=>{const id=b.closest('[data-gbid]').dataset.gbid;try{await sbTamam(await sb(`/rest/v1/geri_bildirimler?id=eq.${id}`,{method:'PATCH',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({durum:b.dataset.gbd})}),'Güncellenemedi');yenile()}catch(e){toast(e.message)}});
+  $$('[data-gbid] [data-gby]').forEach(b=>b.onclick=async()=>{const id=b.closest('[data-gbid]').dataset.gbid;const y=prompt('Yanıtınız (gönderen kişi programında görecek):','');if(!y||!y.trim())return;
+    try{await sbTamam(await sb(`/rest/v1/geri_bildirimler?id=eq.${id}`,{method:'PATCH',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({yanit:y.trim(),yanit_tarih:new Date().toISOString()})}),'Kaydedilemedi');toast('Yanıt kaydedildi');yenile()}catch(e){toast(e.message)}})}
+
+
+/* ========== SAHİBİNDEN AKTARMA: RESİMLİ KURULUM REHBERİ ========== */
+const SV={
+  tel:(ic,ust)=>`<svg viewBox="0 0 160 290" class="rtel" aria-hidden="true"><rect x="3" y="3" width="154" height="284" rx="22" fill="#1d2420"/><rect x="10" y="10" width="140" height="270" rx="16" fill="#fff"/><rect x="58" y="15" width="44" height="9" rx="4.5" fill="#1d2420"/>${ust?`<text x="80" y="42" text-anchor="middle" font-size="10" font-weight="700" fill="#18211B">${ust}</text>`:''}${ic}</svg>`,
+  hl:(x,y,w,h,r)=>`<rect x="${x-3}" y="${y-3}" width="${w+6}" height="${h+6}" rx="${(r??6)+3}" fill="none" stroke="#F08A24" stroke-width="3"/><circle cx="${x+w+2}" cy="${y-2}" r="7" fill="#F08A24"/><text x="${x+w+2}" y="${y+1.5}" text-anchor="middle" font-size="9" font-weight="800" fill="#fff">!</text>`,
+  kutu:(x,y,w,h,t,renk,yazi)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${renk||'#EEF1EC'}"/>${t?`<text x="${x+6}" y="${y+h/2+3.5}" font-size="8.5" fill="${yazi||'#18211B'}">${t}</text>`:''}`,
+  satir:(y,t,ikon)=>`<rect x="18" y="${y}" width="124" height="20" rx="5" fill="#F4F6F3"/>${ikon?`<rect x="23" y="${y+4}" width="12" height="12" rx="3" fill="${ikon}"/>`:''}<text x="${ikon?40:24}" y="${y+13.5}" font-size="8" fill="#18211B">${t}</text>`,
+  tik:(x,y,acik)=>`<rect x="${x}" y="${y}" width="22" height="13" rx="6.5" fill="${acik?'#34C759':'#CBD2CC'}"/><circle cx="${acik?x+15.5:x+6.5}" cy="${y+6.5}" r="5.2" fill="#fff"/>`};
+function rehberCizim(k){const {tel,hl,kutu,satir,tik}=SV;
+  const ikonlar=(vurgu)=>{let s='';const r=['#5BC0EB','#FDE74C','#9BC53D','#E55934','#FA7921','#7E57C2','#26A69A','#EC407A','#8D6E63','#42A5F5','#AB47BC','#66BB6A'];for(let i=0;i<12;i++){const x=22+(i%4)*31,y=40+Math.floor(i/4)*40;s+=`<rect x="${x}" y="${y}" width="24" height="24" rx="6" fill="${i===vurgu?'url(#kgr)':r[i]}"/>`+(i===vurgu?`<text x="${x+12}" y="${y+33}" text-anchor="middle" font-size="6.5" fill="#18211B">Kestirmeler</text>`:'')}
+    return `<defs><linearGradient id="kgr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E9407A"/><stop offset="1" stop-color="#3D7BF7"/></linearGradient></defs>`+s};
+  const C={
+   i1:tel(ikonlar(5)+hl(53,80,24,24,6)),
+   i2:tel(`<text x="18" y="58" font-size="13" font-weight="800" fill="#18211B">Kestirmeler</text><text x="138" y="40" font-size="16" fill="#3D7BF7" text-anchor="end">+</text>${hl(128,28,12,14,4)}`+[0,1,2].map(i=>`<rect x="18" y="${70+i*48}" width="58" height="40" rx="8" fill="${['#5BC0EB','#9BC53D','#FA7921'][i]}"/><rect x="84" y="${70+i*48}" width="58" height="40" rx="8" fill="${['#7E57C2','#26A69A','#EC407A'][i]}"/>`).join('')),
+   i3:tel(kutu(18,52,124,18,'🔍 javascript')+satir(80,'Web Sayfasında JavaScript Çalıştır','#3D7BF7')+hl(18,80,124,20,5)+satir(106,'JavaScript (Komut)','#9AA59C'),'Eylem ekle'),
+   i4:tel(`<rect x="18" y="52" width="124" height="120" rx="8" fill="#F4F6F3"/><text x="24" y="66" font-size="7.5" font-weight="700" fill="#3D7BF7">JavaScript Çalıştır</text>`+[0,1,2,3,4,5,6].map(i=>`<rect x="24" y="${74+i*12}" width="${60+((i*37)%50)}" height="5" rx="2.5" fill="#B9C4BB"/>`).join('')+hl(18,52,124,120,8)+`<rect x="52" y="182" width="56" height="18" rx="9" fill="#18211B"/><text x="80" y="194" text-anchor="middle" font-size="8" fill="#fff">Yapıştır</text>`,'Yeni Kestirme'),
+   i5:tel(`<rect x="18" y="52" width="124" height="44" rx="8" fill="#F4F6F3"/><text x="24" y="66" font-size="7.5" font-weight="700" fill="#3D7BF7">JavaScript Çalıştır</text><rect x="24" y="74" width="80" height="5" rx="2.5" fill="#B9C4BB"/><rect x="24" y="84" width="60" height="5" rx="2.5" fill="#B9C4BB"/><text x="80" y="110" text-anchor="middle" font-size="10" fill="#9AA59C">↓</text><rect x="18" y="118" width="124" height="26" rx="8" fill="#F4F6F3"/><text x="24" y="134" font-size="8" fill="#18211B"><tspan font-weight="700" fill="#E55934">Panoya Kopyala:</tspan> JavaScript sonucu</text>`+hl(18,118,124,26,8),'Yeni Kestirme'),
+   i6:tel(kutu(18,50,124,20,"Portföy'e Kopyala",'#F4F6F3')+hl(18,50,124,20,6)+satir(90,'Paylaşım Sayfasında Göster')+tik(116,94,true)+hl(114,92,26,17,8)+satir(116,'Girdi: Safari web sayfaları'),'Ayrıntılar'),
+   i7:tel(satir(52,'Ayarlar › Uygulamalar')+satir(76,'Kestirmeler','#3D7BF7')+satir(100,'Gelişmiş')+`<text x="18" y="140" font-size="8" fill="#18211B">Betik çalıştırmaya izin ver</text>`+tik(118,131,true)+hl(116,129,26,17,8),'Kestirmeler'),
+   u1:tel(kutu(18,36,124,16,'sahibinden.com/ilan/…','#EEF1EC','#4A554C')+`<rect x="18" y="58" width="124" height="70" rx="6" fill="#DCE6EE"/><rect x="18" y="134" width="90" height="8" rx="4" fill="#B9C4BB"/><rect x="18" y="148" width="60" height="10" rx="4" fill="#3C7922"/>`+[0,1,2].map(i=>`<rect x="18" y="${168+i*12}" width="${110-i*20}" height="6" rx="3" fill="#D5DDD6"/>`).join('')+`<rect x="10" y="246" width="140" height="34" fill="#F4F6F3"/>`+[0,1,2,3,4].map(i=>`<rect x="${24+i*26}" y="256" width="12" height="12" rx="3" fill="#9AA59C"/>`).join('')),
+   u2:tel(kutu(18,36,124,16,'sahibinden.com/ilan/…','#EEF1EC','#4A554C')+`<rect x="18" y="58" width="124" height="70" rx="6" fill="#DCE6EE"/><rect x="10" y="246" width="140" height="34" fill="#F4F6F3"/>`+[0,1,2,3,4].map(i=>i===2?`<path d="M${24+i*26+6} 256 v10 M${24+i*26+2} 260 l4 -4 l4 4 M${24+i*26} 262 v6 h12 v-6" stroke="#3D7BF7" stroke-width="1.6" fill="none"/>`:`<rect x="${24+i*26}" y="256" width="12" height="12" rx="3" fill="#9AA59C"/>`).join('')+hl(74,252,16,18,5)),
+   u3:tel(`<rect x="10" y="120" width="140" height="160" rx="14" fill="#F4F6F3"/>`+satir(140,'Bağlantıyı Kopyala')+satir(164,"Portföy'e Kopyala",'url(#kgr)')+hl(18,164,124,20,5)+satir(188,'Okuma Listesine Ekle')+ikonlar(-1).slice(0,0)+`<defs><linearGradient id="kgr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E9407A"/><stop offset="1" stop-color="#3D7BF7"/></linearGradient></defs>`),
+   u4:tel(`<rect x="18" y="40" width="124" height="20" rx="6" fill="#F2F8EE"/><text x="24" y="53" font-size="8" font-weight="700" fill="#2B5618">Sahibinden'den bilgi al</text>`+kutu(18,66,124,40,'','#fff')+`<rect x="18" y="66" width="124" height="40" rx="6" fill="none" stroke="#C9D3CA"/><rect x="18" y="114" width="64" height="20" rx="6" fill="#fff" stroke="#C9D3CA"/><text x="24" y="127" font-size="7.5" fill="#18211B">Panodan yapıştır</text>`+hl(18,114,64,20,6)+`<rect x="88" y="114" width="54" height="20" rx="6" fill="#3C7922"/><text x="115" y="127" text-anchor="middle" font-size="7.5" fill="#fff">Bilgileri al</text>`,'İlan Ekle'),
+   a1:tel(`<rect x="18" y="60" width="124" height="70" rx="8" fill="#F2F8EE"/><text x="24" y="76" font-size="8" font-weight="700" fill="#18211B">Sahibinden aktarma</text><rect x="24" y="100" width="90" height="20" rx="6" fill="#fff" stroke="#C9D3CA"/><text x="30" y="113" font-size="7.5" fill="#18211B">Yer imi kodunu kopyala</text>`+hl(24,100,90,20,6),'Portföy Defteri › Ayarlar'),
+   a2:tel(kutu(18,30,110,16,'sahibinden.com/…','#EEF1EC','#4A554C')+`<text x="138" y="42" font-size="12" fill="#18211B">⋮</text><rect x="72" y="50" width="76" height="100" rx="8" fill="#fff" stroke="#D5DDD6"/><text x="80" y="66" font-size="11" fill="#18211B">← ☆ ⤓ ⓘ ↻</text>`+hl(98,55,12,15,4)+[0,1,2,3].map(i=>`<rect x="80" y="${78+i*16}" width="56" height="6" rx="3" fill="#D5DDD6"/>`).join('')),
+   a3:tel(`<rect x="18" y="58" width="124" height="70" rx="6" fill="#DCE6EE"/><rect x="14" y="228" width="132" height="26" rx="6" fill="#323232"/><text x="22" y="244" font-size="8" fill="#fff">Yer işareti eklendi</text><text x="140" y="244" text-anchor="end" font-size="8" font-weight="700" fill="#8AB4F8">Düzenle</text>`+hl(108,234,34,14,4)),
+   a4:tel(`<text x="18" y="56" font-size="7.5" fill="#6B7568">Ad</text>`+kutu(18,60,124,18,'pdkopyala','#F4F6F3')+hl(18,60,124,18,5)+`<text x="18" y="96" font-size="7.5" fill="#6B7568">URL</text>`+kutu(18,100,124,30,'javascript:!async function(){…}();','#F4F6F3')+hl(18,100,124,30,5),'Yer işaretini düzenle'),
+   b1:tel(kutu(18,30,124,16,'sahibinden.com/ilan/…','#EEF1EC','#4A554C')+`<rect x="18" y="52" width="124" height="70" rx="6" fill="#DCE6EE"/><rect x="18" y="128" width="90" height="8" rx="4" fill="#B9C4BB"/><rect x="18" y="142" width="60" height="10" rx="4" fill="#3C7922"/>`),
+   b2:tel(kutu(18,30,124,16,'pdkopyala','#fff')+`<rect x="18" y="30" width="124" height="16" rx="6" fill="none" stroke="#3D7BF7"/>`+satir(54,'☆ pdkopyala','#FDE74C')+hl(18,54,124,20,5)+satir(78,'pdkopyala - Google Arama')),
+   b3:tel(`<rect x="10" y="10" width="140" height="270" rx="16" fill="rgba(0,0,0,.35)"/><rect x="22" y="100" width="116" height="80" rx="10" fill="#fff"/><text x="80" y="122" text-anchor="middle" font-size="8.5" font-weight="700" fill="#18211B">İlan bilgisi hazır</text><rect x="44" y="146" width="72" height="20" rx="10" fill="#3C7922"/><text x="80" y="159" text-anchor="middle" font-size="8" fill="#fff">Kopyala</text>`+hl(44,146,72,20,10))};
+  return C[k]||''}
+const REHBER={
+ iphone:{kurulum:[
+  ['i1','Kestirmeler uygulamasını açın','iPhone\'da yüklü gelen <b>Kestirmeler</b> uygulamasını açın. Silinmişse App Store\'dan "Kestirmeler" diye aratıp ücretsiz yükleyin.'],
+  ['i2','Yeni kestirme oluşturun','Alttan <b>Kestirmeler</b> sekmesindeyken sağ üstteki <b>+</b> simgesine dokunun.'],
+  ['i3','JavaScript eylemini ekleyin','<b>Eylem Ekle</b>\'ye dokunun, arama kutusuna <b>javascript</b> yazın ve <b>Web Sayfasında JavaScript Çalıştır</b> eylemini seçin.'],
+  ['i4','Kodu yapıştırın','Önce aşağıdaki <b>Kodu kopyala</b> düğmesine basın. Sonra eylemin içindeki örnek kodun tamamını silin (içine dokunup <b>Tümünü Seç</b> › sil) ve kutuya uzun basıp <b>Yapıştır</b> deyin.','ios'],
+  ['i5','Panoya Kopyala eylemini ekleyin','Altındaki arama alanına <b>panoya</b> yazın ve <b>Panoya Kopyala</b> eylemini ekleyin. Eylemin içinde <b>JavaScript sonucu</b> yazmalı.'],
+  ['i6','Ad verin ve paylaşımda gösterin','En üstteki ada dokunup <b>Portföy\'e Kopyala</b> yazın. Alttaki <b>ⓘ</b> (Ayrıntılar) bölümünde <b>Paylaşım Sayfasında Göster</b>\'i açın; girdi türü <b>Safari web sayfaları</b> olmalı. <b>Bitti</b> deyin.'],
+  ['i7','Betik iznini açın','iPhone <b>Ayarlar</b> › <b>Uygulamalar</b> (eski sürümlerde doğrudan) › <b>Kestirmeler</b> › <b>Gelişmiş</b> bölümünde <b>Betik çalıştırmaya izin ver</b> (Allow Running Scripts) seçeneğini açın.']],
+ kullanim:[
+  ['u1','İlanı Safari\'de açın','İlanı <b>Safari</b>\'de açın. Sahibinden uygulamasındaysanız ilanda <b>Paylaş</b> › <b>Bağlantıyı Kopyala</b> deyip linki Safari\'ye yapıştırın. Kestirme uygulamanın içinde çalışmaz.'],
+  ['u2','Paylaş düğmesine basın','Safari\'nin alt çubuğundaki <b>Paylaş</b> simgesine (yukarı ok çıkan kare) dokunun.'],
+  ['u3','Portföy\'e Kopyala\'yı seçin','Açılan listeyi aşağı kaydırıp <b>Portföy\'e Kopyala</b>\'ya dokunun. İlk kullanımda <b>İzin Ver</b> / <b>Her Zaman İzin Ver</b> deyin. Açıklama ve konum için birkaç saniye bekleyin.'],
+  ['u4','Programa yapıştırın','Portföy Defteri\'nde <b>İlan Ekle</b> › <b>Sahibinden\'den bilgi al</b> › <b>Panodan yapıştır</b> deyin, sonra <b>Bilgileri al</b>. Form dolar, eksikleri tamamlayıp kaydedin.']]},
+ android:{kurulum:[
+  ['a1','Yer imi kodunu kopyalayın','Aşağıdaki <b>Yer imi kodunu kopyala</b> düğmesine basın. Bu işlem <b>Chrome</b>\'da yapılmalı; Samsung Internet\'te çalışmaz.','android'],
+  ['a2','Bir sayfayı yer imlerine ekleyin','Chrome\'da herhangi bir sayfadayken sağ üstteki <b>⋮</b> menüsünü açın ve üst sıradaki <b>☆</b> (yıldız) simgesine dokunun.'],
+  ['a3','Düzenle\'ye basın','Altta beliren "Yer işareti eklendi" çubuğundaki <b>Düzenle</b>\'ye dokunun. Kaçırırsanız <b>⋮</b> › <b>Yer işaretleri</b>\'nden bulup kalem simgesiyle düzenleyin.'],
+  ['a4','Adı ve adresi değiştirin','Adı <b>pdkopyala</b> yapın. <b>URL</b> kutusundaki her şeyi silip uzun basarak <b>Yapıştır</b> deyin ve kaydedin. Kodun sonu <b>}();</b> ile bitmeli.']],
+ kullanim:[
+  ['b1','İlanı Chrome\'da açın','İlanı <b>Chrome</b>\'da açın (<b>⋮</b> menüsünde <b>Masaüstü sitesi</b> kapalı olsun). Sahibinden uygulamasındaysanız <b>Paylaş</b> › <b>Bağlantıyı kopyala</b> deyip Chrome\'a yapıştırın.'],
+  ['b2','pdkopyala yazın','Adres çubuğuna dokunup <b>pdkopyala</b> yazın ve önerilerde çıkan <b>yıldızlı</b> yer imine dokunun (Google aramasına değil).'],
+  ['b3','Kopyala\'ya basın','Sayfada açılan pencerede <b>Kopyala</b>\'ya basın. Pencere açılmazsa birkaç saniye bekleyip yer imini tekrar çalıştırın.'],
+  ['u4','Programa yapıştırın','Portföy Defteri\'nde <b>İlan Ekle</b> › <b>Sahibinden\'den bilgi al</b> › <b>Panodan yapıştır</b> deyin, sonra <b>Bilgileri al</b>.']]}};
+const REHBER_SORUN={
+ iphone:[['Paylaş listesinde "Portföy\'e Kopyala" yok','Kestirmenin <b>ⓘ Ayrıntılar</b> bölümünde <b>Paylaşım Sayfasında Göster</b> açık mı kontrol edin. Paylaş listesinin en altındaki <b>Eylemleri Düzenle</b>\'den de ekleyebilirsiniz. İlanın Safari\'de açık olduğundan emin olun.'],
+  ['"Betik çalıştırmaya izin verilmiyor" uyarısı','Kurulumun 7. adımındaki izni açın.'],
+  ['Açıklama veya konum gelmedi','İlan sayfası tam yüklenmeden çalıştırılmış olabilir; sayfayı aşağı kaydırıp birkaç saniye bekledikten sonra tekrar deneyin. Konum gelmezse formdaki haritadan elle işaretleyin.'],
+  ['Kestirmeyi yeniden kurmam gerekti','Telefon değiştirdiyseniz kurulumu baştan yapın; <b>Kodu kopyala</b> düğmesi her zaman güncel kodu verir.']],
+ android:[['Yer imi önerilerde çıkmıyor','Adres çubuğuna adın tamamını (<b>pdkopyala</b>) yazın; yer imi adının bire bir aynı olduğunu kontrol edin.'],
+  ['Yer imine dokununca Google araması açılıyor','Yıldızlı öneriye değil arama satırına dokunmuşsunuz; listede ☆ işaretli satırı seçin.'],
+  ['Hiçbir şey olmuyor','URL kutusundaki kodun <b>javascript:</b> ile başlayıp <b>}();</b> ile bittiğini kontrol edin; eksik yapıştırıldıysa yeniden kopyalayıp yapıştırın. Samsung Internet değil Chrome kullanın.'],
+  ['Kopyala\'dan sonra yapıştırılan metin boş','Pencere açıkken <b>Kopyala</b>\'ya basın; olmazsa pencerede çıkan <b>İndir</b> ile dosyayı kaydedip WhatsApp\'ta Belge olarak kendinize gönderin ve metni oradan kopyalayın.']]};
+function rehberHtml(){const sk=S.aktarSekme||(/Android/i.test(navigator.userAgent)?'android':'iphone');const R=REHBER[sk];
+  const kart=(a,n)=>`<div class="radim"><div class="rnum">${n}</div><div class="rgov"><b>${a[1]}</b><p>${a[2]}</p>${a[3]?`<button class="btn pri" data-kkop="${a[3]}">${a[3]==='ios'?'Kodu kopyala':'Yer imi kodunu kopyala'}</button>`:''}</div><div class="rcz">${rehberCizim(a[0])}</div></div>`;
+  return `<div class="seg" role="tablist" style="margin-bottom:12px">${[['iphone','iPhone'],['android','Samsung / Android']].map(([k,l])=>`<button role="tab" aria-selected="${sk===k}" class="${sk===k?'on':''}" data-rsek="${k}">${l}</button>`).join('')}</div>
+    <h3 class="rbas">Bir kerelik kurulum <span class="small muted">· ${sk==='iphone'?'yaklaşık 3 dakika':'yaklaşık 2 dakika'}</span></h3>${R.kurulum.map((a,k)=>kart(a,k+1)).join('')}
+    <h3 class="rbas">Her ilanda kullanım</h3>${R.kullanim.map((a,k)=>kart(a,k+1)).join('')}
+    <details class="rsorun"><summary>Sık karşılaşılan sorunlar</summary>${REHBER_SORUN[sk].map(([s,c])=>`<p><b>${s}</b><br>${c}</p>`).join('')}</details>`}
+function rehberBagla(){$$('[data-rsek]').forEach(b=>b.onclick=()=>{S.aktarSekme=b.dataset.rsek;const el=$('#aktarRehber');if(el){el.innerHTML=rehberHtml();rehberBagla();kodKopyaBagla()}})}
+
+function kodKopyaBagla(){$$('[data-kkop]').forEach(b=>b.onclick=async()=>{const t=b.dataset.kkop==='ios'?KISAYOL_IOS:KISAYOL_ANDROID;
+    try{await navigator.clipboard.writeText(t)}catch(e){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove()}toast(b.dataset.kkop==='ios'?'Kestirme kodu kopyalandı':'Yer imi kodu kopyalandı')})}
 /* ========== ilan linki (herkese açık ilan sayfası) ========== */
 const YAYIN_KOVA='yayin';
 function linkAdresi(tok){let base='https://surextr.github.io/portfoydefteri/ilan.html';if(location.protocol==='https:'&&!/^(localhost|127\.|192\.168\.|10\.)/.test(location.hostname))base=new URL('ilan.html',location.href).href;return base+'?k='+tok}
@@ -3654,7 +3775,8 @@ const AYAR_BOLUM=[
   ['aktarim','Sahibinden aktarma','iPhone kestirmesi, Android yer imi',["Sahibinden'den telefonla aktarma"]],
   ['genel','Genel ve görünüm','Varsayılan il, renk, filigran, emlak türleri',['Genel','Emlak türleri','Örnek ilanlar']],
   ['guvenlik','Güvenlik','Açılış şifresi',['Güvenlik']],
-  ['yonetim','Deneme kullanıcıları','Ofis dışı emlakçılar için hesap açma ve erişim',['#yonetimPanel']]];
+  ['yonetim','Deneme kullanıcıları','Hesap açma, erişim ve gelen geri bildirimler',['#yonetimPanel']],
+  ['geri','Geri bildirim gönder','Sorun, öneri veya soru iletin',['#geriPanel']]];
 function ayarBolumle(bolum){
   const paneller=[...new Set($$('#app .panel'))].filter(p=>!p.closest('.sheet'));if(!paneller.length)return;
   const bul=p=>{const h=(p.querySelector('h2')||{}).textContent||'';for(const [k,,,L] of AYAR_BOLUM)for(const x of L){if(x[0]==='#'?('#'+p.id)===x:h.trim().startsWith(x))return k}return 'genel'};
@@ -3718,23 +3840,14 @@ function ayarlarSayfa(){
     </div><button class="btn pri" id="turEkle" style="margin-top:10px">Türü ekle</button>
     <p class="small muted">Özel türlerin sahibinden'de birebir karşılığı yoktur; aktarırken en yakın türü seçmeniz gerekir.</p></details>
   </div>
+  <div class="panel" id="geriPanel"></div>
   <div class="panel" id="ofisPanel"></div>
   ${S.sistemYonetici?'<div class="panel" id="yonetimPanel"></div>':''}
   <div class="panel" id="bildirimPanel"></div>
   <div class="panel"><h2>Bulut ve eşitleme</h2><div id="bulutDurum"></div></div>
   <div class="panel"><h2>Sahibinden'den telefonla aktarma</h2>
-   <p class="small muted" style="margin-top:-6px">Telefonda sahibinden ilanını açıklaması ve konumuyla birlikte kopyalamak için bir kerelik kurulum.</p>
-   <details><summary style="cursor:pointer;font-weight:700">iPhone: Kestirme kodu</summary>
-    <p class="small">Kestirmeler'de "Portföy'e Kopyala" kestirmesindeki <b>Web Sayfasında JavaScript Çalıştır</b> eyleminin kodu. Yeniden kurmanız gerekirse kopyalayıp oraya yapıştırın.</p>
-    <button class="btn" data-kkop="ios">Kodu kopyala</button></details>
-   <details style="margin-top:10px"><summary style="cursor:pointer;font-weight:700">Android (Samsung vb.): Chrome yer imi</summary>
-    <ol class="small" style="padding-left:18px;line-height:1.6">
-     <li>Aşağıdaki <b>Yer imi kodunu kopyala</b> düğmesine basın.</li>
-     <li>Chrome'da herhangi bir sayfadayken <b>⋮</b> menüsündeki <b>☆</b> (yıldız) simgesine basıp sayfayı yer imlerine ekleyin, sonra çıkan <b>Düzenle</b>'ye basın. (Kaçırırsanız ⋮ > Yer işaretleri'nden bulup kalem simgesiyle düzenleyin.)</li>
-     <li>Adını <b>pdkopyala</b> yapın. Adres (URL) kutusundaki her şeyi silip kopyaladığınız kodu yapıştırın, kaydedin. Kodun sonu <b>}();</b> ile bitmeli.</li>
-     <li>Kullanırken: Sahibinden ilanını Chrome'da açın (<b>Masaüstü sitesi kapalı</b> olsun). Adres çubuğuna dokunup <b>pdkopyala</b> yazın ve önerilerde çıkan yıldızlı yer imine dokunun.</li>
-     <li>Sayfada çıkan pencerede <b>Kopyala</b>'ya basın, sonra Portföy Defteri'nde <b>Panodan yapıştır</b> deyin.</li></ol>
-    <button class="btn" data-kkop="android">Yer imi kodunu kopyala</button></details></div>
+   <p class="small muted" style="margin-top:-6px">Telefonda sahibinden ilanını açıklaması ve konumuyla birlikte programa aktarmak için telefonunuzu seçin. Kurulum bir kez yapılır.</p>
+   <div id="aktarRehber">${rehberHtml()}</div></div>
   <div class="panel"><h2>Yedekleme</h2>
    <p class="small muted" style="margin-top:-6px">Tüm ilanlar, fotoğraflar, belgeler ve ayarlar tek bir dosyaya kaydedilir. Bu dosyayla başka cihaza aktarabilir ya da kayıptan sonra geri yükleyebilirsiniz.${a.sonYedek?` Son yedek: <b>${tarih(a.sonYedek)}</b>.`:' Henüz yedek alınmadı.'}</p>
    <div class="actions"><button class="btn pri" id="yedekAl">Yedek al</button><label class="btn">Yedek yükle<input type="file" id="yedekIn" accept=".json,application/json" hidden></label></div>
@@ -3767,10 +3880,9 @@ function ayarlarSayfa(){
   $('#turEkle').onclick=async()=>{const ad=$('#yTur').value.trim();if(!ad){toast('Tür adını yazın');return}
     if(a.turler.some(t=>t.ad.toLocaleLowerCase('tr')===ad.toLocaleLowerCase('tr')&&t.ana===$('#yAna').value)){toast('Bu tür zaten var');return}
     a.turler.push({id:'o'+uid().slice(0,8),ana:$('#yAna').value,ad,aktif:true,ozel:true,ekAlanlar:$('#yEk').value.split(',').map(x=>x.trim()).filter(Boolean)});await ayarKaydet();toast(`"${ad}" eklendi`);ciz()};
-  bulutPanelCiz();ofisPanelCiz();bildirimPanelCiz();yonetimPanelCiz();
+  bulutPanelCiz();ofisPanelCiz();bildirimPanelCiz();yonetimPanelCiz();geriPanelCiz();
   $('#hKaydet').onclick=async()=>{const n=id=>Math.max(0,parseInt($('#'+id).value)||0);a.hatirlatma={yetki:n('hY'),kira:n('hK'),hareketsiz:n('hH'),musteri:n('hM')};await ayarKaydet();toast('Hatırlatma ayarları kaydedildi')};
-  $$('[data-kkop]').forEach(b=>b.onclick=async()=>{const t=b.dataset.kkop==='ios'?KISAYOL_IOS:KISAYOL_ANDROID;
-    try{await navigator.clipboard.writeText(t)}catch(e){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove()}toast('Kopyalandı')});
+  kodKopyaBagla();rehberBagla();
   $('#ygaKaydet').onclick=async()=>{S.ayarlar.yg={satisOrani:$('#ygaS').value.trim(),kiraBedeli:$('#ygaK').value.trim(),sure:parseInt($('#ygaT').value)||12,maddeler:$('#ygaM').value.split('\n').map(x=>x.trim()).filter(Boolean)};await ayarKaydet();toast('Belge ayarları kaydedildi')};
   $('#ygaSifir').onclick=async()=>{if(!confirm('Belge metni varsayılana döndürülsün mü?'))return;delete S.ayarlar.yg;await ayarKaydet();ciz()};
   $('#ssKaydet').onclick=async()=>{const t=id=>$('#'+id).value.split('\n').map(x=>x.trim()).filter(Boolean);S.ayarlar.surecSablon={satis:t('ssS'),kira:t('ssK')};await ayarKaydet();toast('Süreç adımları kaydedildi')};
@@ -3910,7 +4022,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.10.02-0930';
+const SURUM='2026.10.05-0825';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
