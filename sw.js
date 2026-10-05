@@ -1,5 +1,5 @@
 // Portföy Defteri - çevrimdışı çalışma
-const SURUM='2026.10.05-0829';
+const SURUM='2026.10.05-0847';
 const CEKIRDEK='pd-cekirdek-'+SURUM, HARITA='pd-harita';
 const DOSYALAR=['./','./index.html','./ilan.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CEKIRDEK).then(c=>c.addAll(DOSYALAR)).then(()=>self.skipWaiting()))});

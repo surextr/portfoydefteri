@@ -1403,9 +1403,23 @@ async function durumDegis(i,yeni){
   let kayit=null;
   if(yeni==='Opsiyonlu'&&i.durum!=='Opsiyonlu'){const o=await opsiyonFormu(i,'Opsiyon ne zamana kadar?');if(!o)return;i.opsiyon=o}
   if(yeni!=='Opsiyonlu'&&i.opsiyon)i.opsiyon=null;
-  if(ARSIV.includes(yeni)){kayit=await satisFormu(i,yeni);if(!kayit)return;if(kayit.atla)kayit=null}
+  if(ARSIV.includes(yeni)&&!S.surecKapat){
+    if(i.surec&&i.surec.durum==='devam'){const b=$('#srBitir');if(b){b.click();return}}
+    const kira=yeni==='Kiralandı',ad=kira?'Kiralama':'Satış';
+    const s1=await formSheet(`${ad} süreci tamamlandı mı?`,`<p style="margin-top:-4px">${esc(i.baslik)}</p><p class="small muted">${kira?'Sözleşme, depozito, anahtar teslimi':'Tapu devri, ödeme, anahtar teslimi'} gibi işlemler bitti mi?</p>`,
+      [{ad:'Vazgeç',deger:null},{ad:'Hayır, devam ediyor',deger:'devam'},{ad:'Evet, tamamlandı',deger:'tamam',sinif:'pri'}]);
+    if(!s1)return;
+    if(s1.deger==='devam'){
+      const s2=await formSheet('Süreç takibini başlatayım mı?',`<p class="small" style="margin-top:-4px">Süreç başlatılırsa ilan arşive gitmez, <b>Opsiyonlu</b> olur ve ${kira?'kiralama':'tapu'} adımlarını tek tek takip edersiniz. Bütün adımlar bitince <b>${kira?'Kiralandı':'Satıldı'} olarak tamamla</b> ile arşive taşınır.</p><p class="small muted">Takip etmek istemezseniz sürecin nerede olduğunu not edip ilanı şimdi arşive taşıyabilirsiniz.</p>`,
+        [{ad:'Vazgeç',deger:null},{ad:'Hayır, not yazıp arşivle',deger:'not'},{ad:'Evet, süreci başlat',deger:'baslat',sinif:'pri'}]);
+      if(!s2)return;
+      if(s2.deger==='baslat'){await surecBaslat(i,kira?'kira':'satis');return}
+      S.surecNotIste={ilanId:i.id,devam:true}}
+    else S.surecNotIste={ilanId:i.id,devam:false}}
+  if(ARSIV.includes(yeni)){kayit=await satisFormu(i,yeni);S.surecNotIste=null;if(!kayit)return;if(kayit.atla)kayit=null}
   if(kayit){const pasif=kayit.pasifYap;delete kayit.pasifYap;(i.satislar=i.satislar||[]).push(kayit);
     (i.gecmis=i.gecmis||[]).push({t:Date.now(),m:`${kayit.tur} kaydı: ${para(kayit.bedel)}${kayit.karsiAd?' · '+kayit.karsiAd:''}`});
+    if(kayit.surecNotu)(i.gecmis=i.gecmis||[]).push({t:Date.now(),m:`Süreç notu${kayit.surecDevam?' (süreç devam ederken arşivlendi)':''}: ${kayit.surecNotu.slice(0,300)}`});
     if(kayit.musteriId){const m=musteriBul(kayit.musteriId);if(m){(m.gecmis=m.gecmis||[]).push({t:Date.now(),m:`${kayit.tur==='Satış'?'Satın aldı':'Kiraladı'}: ${i.baslik}`});if(pasif)(m.talepler||[]).forEach(t=>t.aktif=false);await musteriKaydet(m)}}}
   const eski=i.durum;i.durum=yeni;i.updatedAt=Date.now();i.sync='bekliyor';
   (i.gecmis=i.gecmis||[]).push({t:Date.now(),m:`Durum: ${eski} → ${yeni}${yeni==='Opsiyonlu'&&i.opsiyon&&i.opsiyon.bitis?' ('+gun(i.opsiyon.bitis)+' tarihine kadar'+(i.opsiyon.kime?', '+i.opsiyon.kime:'')+')':''}`});
@@ -2390,6 +2404,8 @@ async function satisFormu(i,yeni,mevcut){
     <label class="f"><span>Komisyon: mal sahibinden (TL)</span><input type="text" inputmode="numeric" id="sK2" data-num="1" value="${s.komisyonSahip!=null?nf.format(s.komisyonSahip):''}"></label>
    </div>
    ${pfTip(i)==='dis'?`<label class="f" style="margin-top:12px"><span>Dış ofise ödenen pay (TL)</span><input type="text" inputmode="numeric" id="sPay" data-num="1" value="${s.disPay!=null?nf.format(s.disPay):''}"></label>`:''}
+   ${(()=>{const ist=S.surecNotIste&&S.surecNotIste.ilanId===i.id?S.surecNotIste:null;const srNot=S.surecKapat&&S.surecKapat.ilanId===i.id&&i.surec?[i.surec.notlar,...i.surec.adimlar.filter(a=>a.tamam).map(a=>'✓ '+a.ad+(a.bitti?' ('+gun(a.bitti)+')':''))].filter(Boolean).join('\n'):'';
+     return `<label class="f" style="margin-top:12px"><span>Süreç nasıl ilerledi?${ist&&ist.devam?' <b style="color:var(--danger)">(süreç devam ediyor)</b>':''}</span><textarea id="sSurec" style="min-height:80px" placeholder="${ist&&ist.devam?'Örn. Tapu randevusu 15 Ekim, kredi onayı bekleniyor, kapora alındı':'Örn. Tapu 12 Ekim\'de yapıldı, kredi onayı 1 hafta sürdü, anahtar teslim edildi'}">${esc(s.surecNotu||srNot||'')}</textarea></label>`})()}
    <label class="f" style="margin-top:12px"><span>Not</span><input type="text" id="sNot" value="${esc(s.not||'')}"></label>
    ${!mevcut?`<label style="display:flex;gap:8px;align-items:center;margin-top:12px"><input type="checkbox" id="sPasif" checked> Seçilen müşterinin aktif taleplerini pasif yap</label>`:''}`;
   const dug=mevcut?[{ad:'Vazgeç',deger:null},{ad:'Kaydet',deger:'kaydet',sinif:'pri'}]:[{ad:'Vazgeç',deger:null},{ad:'Bilgisiz devam et',deger:'atla'},{ad:'Kaydet ve arşive taşı',deger:'kaydet',sinif:'pri'}];
@@ -2397,7 +2413,7 @@ async function satisFormu(i,yeni,mevcut){
   const el=r.el,v=id=>el.querySelector('#'+id);const num=id=>v(id)?sayi(v(id).value):null;
   const [yy,aa,gg]=v('sTarih').value.split('-').map(Number);const tarih=new Date(yy,aa-1,gg,12).getTime();
   const kayit={id:s.id||uid(),tur:kira?'Kiralama':'Satış',bedel:num('sBedel'),tarih,musteriId:v('sMus').value,karsiAd:v('sAd').value.trim()||(v('sMus').value?musteriBul(v('sMus').value).ad:''),
-    komisyonKarsi:num('sK1'),komisyonSahip:num('sK2'),disPay:num('sPay'),not:v('sNot').value.trim(),portfoy:pfAd(i)};
+    komisyonKarsi:num('sK1'),komisyonSahip:num('sK2'),disPay:num('sPay'),not:v('sNot').value.trim(),surecNotu:v('sSurec')?v('sSurec').value.trim():'',surecDevam:!!(S.surecNotIste&&S.surecNotIste.ilanId===i.id&&S.surecNotIste.devam)||!!s.surecDevam,portfoy:pfAd(i)};
   if(kira){kayit.kiraSure=+v('sSure').value;const d=new Date(tarih);d.setMonth(d.getMonth()+kayit.kiraSure);kayit.kiraBitis=tarihInput(d.getTime())}
   kayit.pasifYap=!mevcut&&v('sPasif')&&v('sPasif').checked;return kayit}
 const toplamKomisyon=s=>(s.komisyonKarsi||0)+(s.komisyonSahip||0)-(s.disPay||0);
@@ -2405,6 +2421,7 @@ function satisOzetHtml(i){const L_=i.satislar||[];if(!L_.length)return '';
   return `<div class="panel"><h2>Satış / kiralama kayıtları</h2>${L_.slice().reverse().map(s=>`<div class="msat" style="display:block"><b>${esc(s.tur)}</b> · ${gun(s.tarih)} · ${para(s.bedel)}${s.tur==='Kiralama'?' / ay':''}
      <div class="small">${esc(s.karsiAd||'')}${s.tur==='Kiralama'&&s.kiraBitis?` · Kontrat bitişi ${gun(s.kiraBitis)}`:''}</div>
      <div class="small">Komisyon: <b>${para(toplamKomisyon(s))}</b>${s.disPay?` <span class="muted">(dış ofis payı düşüldü)</span>`:''}${s.not?' · '+esc(s.not):''}</div>
+     ${s.surecNotu?`<div class="small" style="white-space:pre-wrap;margin-top:4px;background:var(--soft);padding:6px 8px;border-radius:8px"><b>Süreç${s.surecDevam?' (arşivlenirken devam ediyordu)':''}:</b> ${esc(s.surecNotu)}</div>`:''}
      <div class="actions" style="margin-top:6px"><button class="btn ghost" data-sduz="${s.id}">Düzenle</button></div></div>`).join('')}</div>`}
 function satisBagla(i){$$('[data-sduz]').forEach(b=>b.onclick=async()=>{const s=i.satislar.find(x=>x.id===b.dataset.sduz);const k=await satisFormu(i,s.tur==='Kiralama'?'Kiralandı':'Satıldı',s);if(!k)return;delete k.pasifYap;Object.assign(s,k);await put('ilanlar',i);toast('Kaydedildi');ciz()})}
 
@@ -4055,7 +4072,7 @@ async function yedekYukle(fl){
   toast(`${eklenen} ilan eklendi, ${guncel} ilan güncellendi${musEk?`, ${musEk} müşteri alındı`:''}`);ciz();
 }
 
-const SURUM='2026.10.05-0829';
+const SURUM='2026.10.05-0847';
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 basla().catch(e=>{document.body.innerHTML='<div style="padding:24px;font-family:sans-serif"><h2>Program başlatılamadı</h2><p>'+esc(e&&e.message||e)+'</p><p>Tarayıcınızın gizli sekmede olmadığından ve depolamaya izin verdiğinden emin olun.</p></div>'});
 </script>
